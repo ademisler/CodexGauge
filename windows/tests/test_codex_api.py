@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timezone
 
-from codexgauge_windows.codex_api import _normalize_window_roles, _parse_chatgpt_base_url
-from codexgauge_windows.models import UsageWindowSnapshot
+from codexcontrol_windows.codex_api import _normalize_window_roles, _parse_chatgpt_base_url
+from codexcontrol_windows.models import UsageWindowSnapshot
 
 
 class CodexApiTests(unittest.TestCase):

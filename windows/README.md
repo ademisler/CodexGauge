@@ -9,7 +9,7 @@ This folder contains the Windows implementation of CodexControl.
 - Supports account switching, add account, refresh, reauthenticate, open folder, and remove
 - Runs as a tray app with a dashboard window
 - Persists accounts and snapshots under `%APPDATA%\\CodexControl`
-- Migrates local data from `%APPDATA%\\CodexGauge` and `%APPDATA%\\CodexAccounts`
+- Migrates local data from previous local app directories automatically
 
 ## Run Locally
 

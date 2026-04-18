@@ -66,12 +66,7 @@ Windows data path:
 
 - `%APPDATA%\\CodexControl`
 
-Migration is automatic from older local builds:
-
-- `~/Library/Application Support/CodexGauge`
-- `~/Library/Application Support/CodexAccounts`
-- `%APPDATA%\\CodexGauge`
-- `%APPDATA%\\CodexAccounts`
+Migration from previous local app directories is automatic.
 
 ## Requirements
 

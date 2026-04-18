@@ -1,4 +1,4 @@
-from codexgauge_windows.app import main
+from codexcontrol_windows.app import main
 
 
 if __name__ == "__main__":

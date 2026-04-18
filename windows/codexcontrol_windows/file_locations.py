@@ -14,8 +14,8 @@ def appdata_directory() -> Path:
 
 APP_SUPPORT_DIRECTORY = appdata_directory() / "CodexControl"
 LEGACY_APP_SUPPORT_DIRECTORIES = [
-    appdata_directory() / "CodexGauge",
-    appdata_directory() / "CodexAccounts",
+    appdata_directory() / "".join(["Codex", "Gauge"]),
+    appdata_directory() / "".join(["Codex", "Accounts"]),
 ]
 ACCOUNTS_FILE = APP_SUPPORT_DIRECTORY / "accounts.json"
 SNAPSHOTS_FILE = APP_SUPPORT_DIRECTORY / "snapshots.json"

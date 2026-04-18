@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from codexgauge_windows.models import (
+from codexcontrol_windows.models import (
     AccountUsageSnapshot,
     StoredAccount,
     StoredAccountSource,

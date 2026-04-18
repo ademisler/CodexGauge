@@ -15,7 +15,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "CodexControl",
-            path: "Sources/CodexAccounts",
+            path: "Sources/CodexControl",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),

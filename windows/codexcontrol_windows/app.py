@@ -300,7 +300,7 @@ class CodexControlWindowsApp:
         self.account_store = AccountStore()
         self.snapshot_store = SnapshotStore()
         self.account_manager = CodexAccountManager()
-        self.executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="codexgauge")
+        self.executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="codexcontrol")
         self.events: queue.Queue[tuple[Any, ...]] = queue.Queue()
 
         self.accounts: list[StoredAccount] = []

@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import unittest
 
-from codexgauge_windows.codex_desktop import build_restart_launcher, build_restart_script, encode_powershell_script
+from codexcontrol_windows.codex_desktop import build_restart_launcher, build_restart_script, encode_powershell_script
 
 
 class CodexDesktopTests(unittest.TestCase):

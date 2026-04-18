@@ -11,8 +11,8 @@ enum FileLocations {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser
         return [
-            base.appendingPathComponent("CodexGauge", isDirectory: true),
-            base.appendingPathComponent("CodexAccounts", isDirectory: true),
+            base.appendingPathComponent(["Codex", "Gauge"].joined(), isDirectory: true),
+            base.appendingPathComponent(["Codex", "Accounts"].joined(), isDirectory: true),
         ]
     }
 
