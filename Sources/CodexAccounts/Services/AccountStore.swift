@@ -1,11 +1,5 @@
 import Foundation
 
-struct AccountBootstrapResult {
-    let accounts: [StoredAccount]
-    let didBootstrap: Bool
-    let importedCount: Int
-}
-
 struct AccountStore {
     private static let currentVersion = 1
 
@@ -28,21 +22,6 @@ struct AccountStore {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(StoredAccountList(version: Self.currentVersion, accounts: self.sorted(accounts)))
         try data.write(to: FileLocations.accountsFile, options: .atomic)
-    }
-
-    func loadOrBootstrap(importer: CodexBarImportService) throws -> AccountBootstrapResult {
-        let existing = try self.loadAccounts()
-        guard existing.isEmpty else {
-            return AccountBootstrapResult(accounts: existing, didBootstrap: false, importedCount: 0)
-        }
-
-        let imported = importer.importAccounts()
-        if imported.isEmpty {
-            return AccountBootstrapResult(accounts: [], didBootstrap: false, importedCount: 0)
-        }
-
-        try self.saveAccounts(imported)
-        return AccountBootstrapResult(accounts: self.sorted(imported), didBootstrap: true, importedCount: imported.count)
     }
 
     func merge(existing: [StoredAccount], incoming: [StoredAccount]) -> [StoredAccount] {

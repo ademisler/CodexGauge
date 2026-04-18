@@ -21,7 +21,7 @@ struct AccountDetailView: View {
                 if let errorMessage = self.state.errorMessage {
                     DetailCard {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Son Hata")
+                            Text("Last Error")
                                 .font(.headline)
                             Text(errorMessage)
                                 .font(.body)
@@ -33,12 +33,12 @@ struct AccountDetailView: View {
 
                 DetailCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Hesap Bilgileri")
+                        Text("Account Details")
                             .font(.headline)
 
-                        InfoRow(title: "Kaynak", value: self.account.source.displayName)
-                        InfoRow(title: "E-posta", value: self.state.snapshot?.email ?? self.account.emailHint ?? "Bilinmiyor")
-                        InfoRow(title: "Provider ID", value: self.state.snapshot?.providerAccountID ?? self.account.providerAccountID ?? "Bilinmiyor")
+                        InfoRow(title: "Source", value: self.account.source.displayName)
+                        InfoRow(title: "Email", value: self.state.snapshot?.email ?? self.account.emailHint ?? "Unknown")
+                        InfoRow(title: "Provider ID", value: self.state.snapshot?.providerAccountID ?? self.account.providerAccountID ?? "Unknown")
                         InfoRow(title: "CODEX_HOME", value: self.account.codexHomePath)
                     }
                 }
@@ -61,7 +61,7 @@ struct AccountDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(self.account.displayName)
                             .font(.title2.weight(.semibold))
-                        Text(self.state.snapshot?.planDisplayName ?? "Plan bilgisi bekleniyor")
+                        Text(self.state.snapshot?.planDisplayName ?? "Plan details pending")
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
@@ -71,26 +71,26 @@ struct AccountDetailView: View {
                 }
 
                 HStack(spacing: 8) {
-                    TextField("Etiket", text: self.$draftNickname)
+                    TextField("Label", text: self.$draftNickname)
                         .textFieldStyle(.roundedBorder)
-                    Button("Kaydet") {
+                    Button("Save") {
                         self.onSaveNickname(self.draftNickname)
                     }
                 }
 
                 HStack(spacing: 8) {
-                    Button("Yenile", action: self.onRefresh)
+                    Button("Refresh", action: self.onRefresh)
                         .buttonStyle(.borderedProminent)
-                    Button("Yeniden Giriş", action: self.onReauthenticate)
+                    Button("Reauthenticate", action: self.onReauthenticate)
                         .buttonStyle(.bordered)
-                    Button("Klasörü Aç", action: self.onOpenFolder)
+                    Button("Open Folder", action: self.onOpenFolder)
                         .buttonStyle(.bordered)
-                    Button("Kaldır", role: .destructive, action: self.onRemove)
+                    Button("Remove", role: .destructive, action: self.onRemove)
                         .buttonStyle(.bordered)
                 }
 
                 if let updatedAt = self.state.snapshot?.updatedAt {
-                    Text("Son güncelleme: \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                    Text("Last updated: \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -108,11 +108,11 @@ struct AccountDetailView: View {
             spacing: 12)
         {
             QuotaCard(
-                title: self.state.snapshot?.primaryWindow?.displayName ?? "Birincil Kota",
+                title: self.state.snapshot?.primaryWindow?.displayName ?? "Primary Quota",
                 accent: .blue,
                 window: self.state.snapshot?.primaryWindow)
             QuotaCard(
-                title: self.state.snapshot?.secondaryWindow?.displayName ?? "İkincil Kota",
+                title: self.state.snapshot?.secondaryWindow?.displayName ?? "Secondary Quota",
                 accent: self.weeklyAccent,
                 window: self.state.snapshot?.secondaryWindow)
             CreditsCard(snapshot: self.state.snapshot?.credits)
@@ -165,12 +165,12 @@ private struct QuotaCard: View {
                     ProgressView(value: window.remainingPercent, total: 100)
                         .tint(self.accent)
                     if let resetAt = window.resetAtDisplay {
-                        Text("Yenilenme: \(resetAt)")
+                        Text("Resets: \(resetAt)")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    Text("Veri yok")
+                    Text("No data")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -185,7 +185,7 @@ private struct CreditsCard: View {
     var body: some View {
         DetailCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Kredi")
+                Text("Credits")
                     .font(.headline)
 
                 if let snapshot {
@@ -193,20 +193,20 @@ private struct CreditsCard: View {
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.accentColor)
                     if snapshot.unlimited {
-                        Text("Bu hesap kredi açısından sınırsız görünüyor.")
+                        Text("This account appears to have unlimited credits.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     } else if snapshot.hasCredits {
-                        Text("Kredi bakiyesi aktif.")
+                        Text("Credit balance available.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     } else {
-                        Text("Ek kredi görünmüyor.")
+                        Text("No extra credits detected.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    Text("Veri yok")
+                    Text("No data")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }

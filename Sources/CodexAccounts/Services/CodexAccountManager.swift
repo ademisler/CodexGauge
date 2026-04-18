@@ -13,19 +13,19 @@ enum CodexAccountManagerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .binaryMissing:
-            return "`codex` komutu bulunamadı."
+            return "The `codex` command could not be found."
         case let .loginFailed(output):
-            return "Codex giriş işlemi tamamlanmadı.\n\(output)"
+            return "The Codex sign-in flow did not complete.\n\(output)"
         case .loginTimedOut:
-            return "Codex giriş işlemi zaman aşımına uğradı."
+            return "The Codex sign-in flow timed out."
         case .loginCancelled:
-            return "Yeni hesap ekleme iptal edildi."
+            return "Account setup cancelled."
         case let .launchFailed(message):
-            return "Codex giriş süreci başlatılamadı: \(message)"
+            return "Failed to start the Codex sign-in flow: \(message)"
         case .missingIdentity:
-            return "Giriş tamamlandı ama hesap kimliği okunamadı."
+            return "Sign-in completed, but the account identity could not be read."
         case .unsafeDeletePath:
-            return "Bu yol uygulamanın sahip olduğu managed home dizini değil."
+            return "This path is not an app-managed home directory."
         }
     }
 }
@@ -163,7 +163,7 @@ enum CodexLoginRunner {
             .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return merged.isEmpty ? "Çıktı alınamadı." : String(merged.prefix(4000))
+        return merged.isEmpty ? "No output captured." : String(merged.prefix(4000))
     }
 
     private static func readToEnd(_ pipe: Pipe) async -> String {

@@ -10,15 +10,12 @@ final class AppModel: ObservableObject {
     @Published private(set) var isRefreshingAll = false
     @Published private(set) var isAddingAccount = false
     @Published private(set) var reauthenticatingAccountID: UUID?
-    @Published private(set) var isImporting = false
     @Published var pendingRemovalAccount: StoredAccount?
     @Published var statusMessage: String?
 
     private let accountStore = AccountStore()
     private let snapshotStore = SnapshotStore()
-    private let importer = CodexBarImportService()
     private let accountManager = CodexAccountManager()
-    private let migrationService = AccountHomeMigrationService()
     private let autoRefreshInterval: TimeInterval = 5 * 60
     private var autoRefreshTask: Task<Void, Never>?
     private var addAccountTask: Task<Void, Never>?
@@ -203,13 +200,13 @@ final class AppModel: ObservableObject {
             return
         }
 
-        self.statusMessage = "Yeni hesap ekleme iptal ediliyor."
+        self.statusMessage = "Cancelling account setup."
         self.addAccountTask?.cancel()
     }
 
     private func addAccount() async {
         self.isAddingAccount = true
-        self.statusMessage = "Tarayıcıdaki Codex giriş akışını tamamla veya iptal et."
+        self.statusMessage = "Complete or cancel the Codex sign-in flow in your browser."
         defer {
             self.isAddingAccount = false
             self.addAccountTask = nil
@@ -220,12 +217,12 @@ final class AppModel: ObservableObject {
             self.accounts = self.accountStore.merge(existing: self.accounts, incoming: [account])
             try self.accountStore.saveAccounts(self.accounts)
             self.selectedAccountID = self.accounts.first(where: { $0.matches(account) })?.id ?? account.id
-            self.statusMessage = "\(account.displayName) eklendi."
+            self.statusMessage = "\(account.displayName) added."
             if let selectedAccount = self.selectedAccount {
                 await self.refresh(account: selectedAccount)
             }
         } catch is CancellationError {
-            self.statusMessage = "Yeni hesap ekleme iptal edildi."
+            self.statusMessage = "Account setup cancelled."
         } catch {
             self.statusMessage = error.localizedDescription
         }
@@ -237,7 +234,7 @@ final class AppModel: ObservableObject {
         }
 
         self.reauthenticatingAccountID = account.id
-        self.statusMessage = "\(account.displayName) için yeniden giriş bekleniyor."
+        self.statusMessage = "Waiting for \(account.displayName) to sign in again."
         defer {
             self.reauthenticatingAccountID = nil
         }
@@ -246,37 +243,10 @@ final class AppModel: ObservableObject {
             let updated = try await self.accountManager.reauthenticate(account)
             self.mergeAccount(updated)
             try self.accountStore.saveAccounts(self.accounts)
-            self.statusMessage = "\(updated.displayName) yeniden doğrulandı."
+            self.statusMessage = "\(updated.displayName) reauthenticated."
             if let refreshed = self.accounts.first(where: { $0.id == account.id }) {
                 await self.refresh(account: refreshed)
             }
-        } catch {
-            self.statusMessage = error.localizedDescription
-        }
-    }
-
-    func importFromCodexBar() async {
-        guard !self.isImporting else {
-            return
-        }
-
-        self.isImporting = true
-        defer {
-            self.isImporting = false
-        }
-
-        let imported = self.importer.importAccounts()
-        let previousCount = self.accounts.count
-        let mergedAccounts = self.accountStore.merge(existing: self.accounts, incoming: imported)
-
-        do {
-            self.accounts = try self.migrationService.migrateImportedAccounts(mergedAccounts)
-            try self.accountStore.saveAccounts(self.accounts)
-            let addedCount = max(0, self.accounts.count - previousCount)
-            self.ensureSelection()
-            self.statusMessage = addedCount > 0
-                ? "CodexBar'dan \(addedCount) yeni hesap içe aktarıldı."
-                : "İçe aktarılacak yeni hesap bulunmadı."
         } catch {
             self.statusMessage = error.localizedDescription
         }
@@ -316,18 +286,12 @@ final class AppModel: ObservableObject {
 
     private func loadInitialAccounts() {
         do {
-            let result = try self.accountStore.loadOrBootstrap(importer: self.importer)
-            let loadedAccounts = result.accounts.filter { $0.source != .ambient }
-            let importedAccounts = self.importer.importAccounts()
-            let mergedAccounts = self.accountStore.merge(existing: loadedAccounts, incoming: importedAccounts)
-            self.accounts = try self.migrationService.migrateImportedAccounts(mergedAccounts)
-            if self.accounts != result.accounts {
+            let loadedAccounts = try self.accountStore.loadAccounts()
+            self.accounts = loadedAccounts.filter { $0.source != .ambient }
+            if self.accounts != loadedAccounts {
                 try self.accountStore.saveAccounts(self.accounts)
             }
             self.ensureSelection()
-            if result.didBootstrap {
-                self.statusMessage = "İlk açılışta \(result.importedCount) hesap içe aktarıldı."
-            }
         } catch {
             self.statusMessage = error.localizedDescription
         }
@@ -346,7 +310,7 @@ final class AppModel: ObservableObject {
             try self.accountManager.removeManagedFilesIfOwned(account)
             try self.accountStore.saveAccounts(self.accounts)
             self.ensureSelection()
-            self.statusMessage = "\(account.displayName) kaldırıldı."
+            self.statusMessage = "\(account.displayName) removed."
         } catch {
             self.statusMessage = error.localizedDescription
         }

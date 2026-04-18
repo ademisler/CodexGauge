@@ -13,7 +13,7 @@ struct RootView: View {
         .frame(width: 430, height: 580)
         .background(Color(NSColor.windowBackgroundColor))
         .alert(
-            "Hesabı Kaldır",
+            "Remove Account",
             isPresented: Binding(
                 get: { self.model.pendingRemovalAccount != nil },
                 set: { newValue in
@@ -22,15 +22,15 @@ struct RootView: View {
                     }
                 }))
         {
-            Button("Kaldır", role: .destructive) {
+            Button("Remove", role: .destructive) {
                 self.model.confirmPendingRemoval()
             }
-            Button("İptal", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 self.model.cancelPendingRemoval()
             }
         } message: {
             if let account = self.model.pendingRemovalAccount {
-                Text("\(account.displayName) bu uygulamadan kaldırılacak.")
+                Text("\(account.displayName) will be removed from CodexGauge.")
             }
         }
     }
@@ -55,12 +55,12 @@ struct RootView: View {
                     alternateSystemName: "xmark",
                     isActive: self.model.isAddingAccount,
                     activeAction: { self.model.cancelAddAccount() })
-                    .help(self.model.isAddingAccount ? "Yeni hesap eklemeyi iptal et" : "Yeni hesap ekle")
+                    .help(self.model.isAddingAccount ? "Cancel account setup" : "Add account")
 
                 HeaderIconButton(
                     systemName: "arrow.clockwise",
                     action: { Task { await self.model.refreshAll() } })
-                    .help("Tüm hesapları yenile")
+                    .help("Refresh all accounts")
                     .disabled(self.model.isRefreshingAll)
             }
         }
@@ -72,7 +72,7 @@ struct RootView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Hesap ara", text: self.$model.searchText)
+            TextField("Search accounts", text: self.$model.searchText)
                 .textFieldStyle(.plain)
 
             if !self.model.searchText.isEmpty {
@@ -96,9 +96,9 @@ struct RootView: View {
     private var accountList: some View {
         if self.model.filteredAccounts.isEmpty {
             ContentUnavailableView(
-                "Hesap Yok",
+                "No Accounts",
                 systemImage: "tray",
-                description: Text("İçe aktar veya yeni bir Codex hesabı ekle."))
+                description: Text("Add a Codex account to start tracking quota."))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
@@ -134,9 +134,9 @@ struct RootView: View {
 
         let lowQuotaCount = self.model.lowQuotaCount
         if lowQuotaCount > 0 {
-            return "\(self.model.accountCount) hesap, \(lowQuotaCount) tanesi kritik"
+            return "\(self.model.accountCount) accounts, \(lowQuotaCount) critical"
         }
-        return "\(self.model.accountCount) hesap"
+        return "\(self.model.accountCount) accounts"
     }
 }
 

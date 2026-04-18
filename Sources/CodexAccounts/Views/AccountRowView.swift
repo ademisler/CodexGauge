@@ -56,11 +56,11 @@ struct AccountRowView: View {
                         CompactQuotaLine(title: secondaryWindow.shortLabel, window: secondaryWindow, tint: self.tint(for: snapshot))
                     }
                 } else if snapshot.isQuotaBlocked {
-                    Text("Kota dolu")
+                    Text("Quota reached")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.red)
                 } else {
-                    Text("Kota verisi yok")
+                    Text("No quota data")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -70,7 +70,7 @@ struct AccountRowView: View {
                     .foregroundStyle(.orange)
                     .lineLimit(self.isSelected ? 4 : 2)
             } else {
-                Text("Veri bekleniyor")
+                Text("Waiting for data")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -81,13 +81,13 @@ struct AccountRowView: View {
 
                 HStack(spacing: 6) {
                     RowActionButton(systemName: "arrow.clockwise", action: self.onRefresh)
-                        .help("Yenile")
+                        .help("Refresh")
                     RowActionButton(systemName: "person.crop.circle.badge.checkmark", action: self.onReauthenticate)
-                        .help("Yeniden giriş")
+                        .help("Reauthenticate")
                     RowActionButton(systemName: "folder", action: self.onOpenFolder)
-                        .help("Klasörü aç")
+                        .help("Open folder")
                     RowActionButton(systemName: "trash", role: .destructive, action: self.onRemove)
-                        .help("Kaldır")
+                        .help("Remove")
 
                     Spacer()
 
@@ -99,7 +99,7 @@ struct AccountRowView: View {
                 }
 
                 HStack(spacing: 8) {
-                    TextField("Etiket", text: self.$draftNickname)
+                    TextField("Label", text: self.$draftNickname)
                         .textFieldStyle(.plain)
                         .font(.caption)
                         .padding(.horizontal, 8)
@@ -111,7 +111,7 @@ struct AccountRowView: View {
                             self.onSaveNickname(self.draftNickname)
                         }
 
-                    Button("Kaydet") {
+                    Button("Save") {
                         self.onSaveNickname(self.draftNickname)
                     }
                     .buttonStyle(.plain)
@@ -177,7 +177,7 @@ private struct CompactQuotaLine: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Yok")
+                    Text("None")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

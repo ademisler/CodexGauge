@@ -36,30 +36,30 @@ enum CodexAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .authNotFound:
-            return "Bu hesap için `auth.json` bulunamadı."
+            return "No `auth.json` was found for this account."
         case let .authInvalid(message):
-            return "Kimlik dosyası okunamadı: \(message)"
+            return "Failed to read the auth file: \(message)"
         case .authMissingTokens:
-            return "`auth.json` içinde gerekli token alanları eksik."
+            return "The required token fields are missing from `auth.json`."
         case .unauthorized:
-            return "Codex kullanım API isteği yetkisiz döndü."
+            return "The Codex usage API request returned unauthorized."
         case .invalidResponse:
-            return "Codex API beklenen biçimde cevap vermedi."
+            return "The Codex API response was not in the expected format."
         case let .serverError(code, message):
             if let message, !message.isEmpty {
-                return "Codex API hatası \(code): \(message)"
+                return "Codex API error \(code): \(message)"
             }
-            return "Codex API hatası \(code)."
+            return "Codex API error \(code)."
         case .refreshExpired:
-            return "Refresh token süresi dolmuş. Bu hesapla yeniden giriş yap."
+            return "The refresh token has expired. Sign in again for this account."
         case .refreshRevoked:
-            return "Refresh token iptal edilmiş. Bu hesapla yeniden giriş yap."
+            return "The refresh token was revoked. Sign in again for this account."
         case .refreshReused:
-            return "Refresh token tekrar kullanılamıyor. Bu hesapla yeniden giriş yap."
+            return "The refresh token can no longer be reused. Sign in again for this account."
         case .inconsistentLiveData:
-            return "Canlı API yanıtları birbiriyle tutarlı değil. Veri doğrulanamadı."
+            return "Live API responses were inconsistent. The data could not be verified."
         case let .network(message):
-            return "Ağ hatası: \(message)"
+            return "Network error: \(message)"
         }
     }
 }
@@ -231,7 +231,7 @@ enum CodexAPI {
 
         let data = try Data(contentsOf: authURL)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw CodexAPIError.authInvalid("geçersiz JSON")
+            throw CodexAPIError.authInvalid("invalid JSON")
         }
 
         if let apiKey = json["OPENAI_API_KEY"] as? String,

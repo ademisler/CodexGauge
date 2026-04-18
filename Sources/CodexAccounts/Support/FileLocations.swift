@@ -25,16 +25,6 @@ enum FileLocations {
         self.appSupportDirectory.appendingPathComponent("managed-homes", isDirectory: true)
     }
 
-    static var codexBarSupportDirectory: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.homeDirectoryForCurrentUser
-        return base.appendingPathComponent("CodexBar", isDirectory: true)
-    }
-
-    static var codexBarManagedAccountsFile: URL {
-        self.codexBarSupportDirectory.appendingPathComponent("managed-codex-accounts.json", isDirectory: false)
-    }
-
     static var ambientCodexHome: URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
     }

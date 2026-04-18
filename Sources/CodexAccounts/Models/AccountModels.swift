@@ -2,17 +2,37 @@ import Foundation
 
 enum StoredAccountSource: String, Codable, CaseIterable, Sendable {
     case ambient
-    case importedCodexBar
     case managedByApp
+
+    private static let legacyImportedValue = ["imported", "Codex", "Bar"].joined()
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case Self.ambient.rawValue:
+            self = .ambient
+        case Self.managedByApp.rawValue, Self.legacyImportedValue:
+            self = .managedByApp
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unknown stored account source: \(rawValue)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.rawValue)
+    }
 
     var displayName: String {
         switch self {
         case .ambient:
-            "Sistem"
-        case .importedCodexBar:
-            "CodexBar"
+            "System"
         case .managedByApp:
-            "Bu uygulama"
+            "Managed"
         }
     }
 
@@ -89,10 +109,8 @@ struct StoredAccount: Codable, Identifiable, Hashable, Sendable {
     private var sourcePriority: Int {
         switch self.source {
         case .managedByApp:
-            3
-        case .ambient:
             2
-        case .importedCodexBar:
+        case .ambient:
             1
         }
     }
@@ -177,7 +195,7 @@ struct AccountUsageSnapshot: Codable, Sendable {
     }
 
     var planDisplayName: String {
-        guard let plan, !plan.isEmpty else { return "Bilinmiyor" }
+        guard let plan, !plan.isEmpty else { return "Unknown" }
         return plan
             .replacingOccurrences(of: "_", with: " ")
             .split(separator: " ")
@@ -198,32 +216,32 @@ struct UsageWindowSnapshot: Codable, Sendable {
     var displayName: String {
         switch self.limitWindowSeconds {
         case 18_000:
-            return "5 Saat"
+            return "5 Hours"
         case 604_800:
-            return "7 Gün"
+            return "7 Days"
         default:
             let hours = Double(self.limitWindowSeconds) / 3600
             if hours < 24 {
-                return "\(Int(hours.rounded())) Saat"
+                return "\(Int(hours.rounded())) Hours"
             }
             let days = hours / 24
-            return "\(Int(days.rounded())) Gün"
+            return "\(Int(days.rounded())) Days"
         }
     }
 
     var shortLabel: String {
         switch self.limitWindowSeconds {
         case 18_000:
-            return "5s"
+            return "5h"
         case 604_800:
-            return "7g"
+            return "7d"
         default:
             let hours = Double(self.limitWindowSeconds) / 3600
             if hours < 24 {
-                return "\(Int(hours.rounded()))s"
+                return "\(Int(hours.rounded()))h"
             }
             let days = hours / 24
-            return "\(Int(days.rounded()))g"
+            return "\(Int(days.rounded()))d"
         }
     }
 
@@ -242,14 +260,14 @@ struct CreditsBalanceSnapshot: Codable, Sendable {
 
     var displayValue: String {
         if self.unlimited {
-            return "Sınırsız"
+            return "Unlimited"
         }
         if let balance {
             return balance.formatted(.number.precision(.fractionLength(0...2)))
         }
         if self.hasCredits {
-            return "Var"
+            return "Available"
         }
-        return "Yok"
+        return "None"
     }
 }
