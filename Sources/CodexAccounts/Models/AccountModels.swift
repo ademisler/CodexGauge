@@ -92,13 +92,29 @@ struct StoredAccount: Codable, Identifiable, Hashable, Sendable {
         if self.nickname == nil || self.nickname?.isEmpty == true {
             self.nickname = other.nickname
         }
-        if self.emailHint == nil || self.emailHint?.isEmpty == true {
+
+        let shouldPreferOtherIdentity = other.sourcePriority > self.sourcePriority
+            || (other.sourcePriority == self.sourcePriority && other.recencyDate >= self.recencyDate)
+
+        if shouldPreferOtherIdentity,
+           let emailHint = other.emailHint?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !emailHint.isEmpty
+        {
+            self.emailHint = emailHint
+        } else if self.emailHint == nil || self.emailHint?.isEmpty == true {
             self.emailHint = other.emailHint
         }
-        if self.providerAccountID == nil || self.providerAccountID?.isEmpty == true {
+
+        if shouldPreferOtherIdentity,
+           let providerAccountID = other.providerAccountID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !providerAccountID.isEmpty
+        {
+            self.providerAccountID = providerAccountID
+        } else if self.providerAccountID == nil || self.providerAccountID?.isEmpty == true {
             self.providerAccountID = other.providerAccountID
         }
-        if other.sourcePriority > self.sourcePriority {
+
+        if shouldPreferOtherIdentity {
             self.source = other.source
             self.codexHomePath = other.codexHomePath
         }
@@ -113,6 +129,10 @@ struct StoredAccount: Codable, Identifiable, Hashable, Sendable {
         case .ambient:
             1
         }
+    }
+
+    private var recencyDate: Date {
+        self.lastAuthenticatedAt ?? self.updatedAt
     }
 
     static func normalizeEmail(_ value: String?) -> String? {

@@ -216,6 +216,18 @@ struct CodexAccountManager {
         }
     }
 
+    func discoverManagedAccounts(existing: [StoredAccount]) throws -> [StoredAccount] {
+        try FileLocations.ensureDirectories()
+        let homeURLs = try FileManager.default.contentsOfDirectory(
+            at: FileLocations.managedHomesDirectory,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles])
+
+        return homeURLs.compactMap { homeURL in
+            self.discoveredManagedAccount(at: homeURL, existing: existing)
+        }
+    }
+
     private func authenticateAccount(
         homeURL: URL,
         source: StoredAccountSource,
@@ -254,5 +266,55 @@ struct CodexAccountManager {
             createdAt: existing?.createdAt ?? now,
             updatedAt: now,
             lastAuthenticatedAt: now)
+    }
+
+    private func discoveredManagedAccount(at homeURL: URL, existing: [StoredAccount]) -> StoredAccount? {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: homeURL.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return nil
+        }
+
+        let authURL = homeURL.appendingPathComponent("auth.json", isDirectory: false)
+        guard FileManager.default.fileExists(atPath: authURL.path) else {
+            return nil
+        }
+
+        guard let identity = try? CodexAPI.loadIdentity(codexHomePath: homeURL.path),
+              identity.email != nil || identity.providerAccountID != nil
+        else {
+            return nil
+        }
+
+        let discoveredAt = self.directoryTimestamp(for: homeURL)
+        let candidate = StoredAccount(
+            id: UUID(),
+            nickname: nil,
+            emailHint: identity.email,
+            providerAccountID: identity.providerAccountID,
+            codexHomePath: homeURL.path,
+            source: .managedByApp,
+            createdAt: discoveredAt,
+            updatedAt: discoveredAt,
+            lastAuthenticatedAt: discoveredAt)
+
+        let matchedExisting = existing.first(where: { $0.matches(candidate) })
+
+        return StoredAccount(
+            id: matchedExisting?.id ?? UUID(),
+            nickname: matchedExisting?.nickname,
+            emailHint: identity.email ?? matchedExisting?.emailHint,
+            providerAccountID: identity.providerAccountID ?? matchedExisting?.providerAccountID,
+            codexHomePath: homeURL.path,
+            source: .managedByApp,
+            createdAt: matchedExisting?.createdAt ?? discoveredAt,
+            updatedAt: max(matchedExisting?.updatedAt ?? .distantPast, discoveredAt),
+            lastAuthenticatedAt: max(matchedExisting?.lastAuthenticatedAt ?? .distantPast, discoveredAt))
+    }
+
+    private func directoryTimestamp(for homeURL: URL) -> Date {
+        let values = try? homeURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+        return values?.contentModificationDate
+            ?? values?.creationDate
+            ?? Date()
     }
 }

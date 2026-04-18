@@ -287,8 +287,10 @@ final class AppModel: ObservableObject {
     private func loadInitialAccounts() {
         do {
             let loadedAccounts = try self.accountStore.loadAccounts()
-            self.accounts = loadedAccounts.filter { $0.source != .ambient }
-            if self.accounts != loadedAccounts {
+            let storedAccounts = loadedAccounts.filter { $0.source != .ambient }
+            let discoveredManagedAccounts = try self.accountManager.discoverManagedAccounts(existing: storedAccounts)
+            self.accounts = self.accountStore.merge(existing: storedAccounts, incoming: discoveredManagedAccounts)
+            if self.accounts != storedAccounts {
                 try self.accountStore.saveAccounts(self.accounts)
             }
             self.ensureSelection()
