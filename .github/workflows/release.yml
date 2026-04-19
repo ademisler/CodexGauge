@@ -28,11 +28,14 @@ jobs:
       - name: Bootstrap Sparkle framework
         run: ./Scripts/bootstrap_sparkle.sh
       - name: Import Developer ID certificate
-        if: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 != '' && secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD != '' }}
         env:
           CERT_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
         run: |
+          if [[ -z "$CERT_BASE64" || -z "$CERT_PASSWORD" ]]; then
+            echo "Skipping Developer ID certificate import."
+            exit 0
+          fi
           KEYCHAIN_PATH="$RUNNER_TEMP/codexcontrol-signing.keychain-db"
           CERT_PATH="$RUNNER_TEMP/codexcontrol-dev-id.p12"
           echo "$CERT_BASE64" | base64 --decode > "$CERT_PATH"
@@ -43,12 +46,15 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
       - name: Store notary credentials
-        if: ${{ secrets.APPLE_NOTARY_APPLE_ID != '' && secrets.APPLE_NOTARY_TEAM_ID != '' && secrets.APPLE_NOTARY_APP_PASSWORD != '' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_NOTARY_APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_NOTARY_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_NOTARY_APP_PASSWORD }}
         run: |
+          if [[ -z "$APPLE_ID" || -z "$APPLE_TEAM_ID" || -z "$APPLE_APP_PASSWORD" ]]; then
+            echo "Skipping notary credential setup."
+            exit 0
+          fi
           xcrun notarytool store-credentials "codexcontrol-notary" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
