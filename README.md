@@ -1,84 +1,106 @@
 # CodexControl
 
-CodexControl is a local desktop app for OpenAI Codex users who need two things in one place:
+<p align="center">
+  <img src="./docs/images/codexcontrol-demo-ui.png" alt="CodexControl demo UI" width="430">
+</p>
 
-- live quota visibility
-- fast account switching
+<p align="center">
+  <strong>Local-first Codex quota tracking and account switching for macOS and Windows.</strong>
+</p>
 
-It tracks each saved Codex account directly from local authentication state, reads quota windows from OpenAI, and lets you switch the active `~/.codex` account without signing in again from scratch.
+<p align="center">
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111111?logo=apple&logoColor=white">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-supported-111111?logo=windows&logoColor=white">
+  <img alt="Local-first" src="https://img.shields.io/badge/storage-local--first-111111">
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111111">
+</p>
 
-## What It Does
+CodexControl is a focused desktop app for people who actively manage multiple OpenAI Codex accounts.
 
-- Shows live Codex quota directly from OpenAI
-- Separates the 5-hour and 7-day windows when both are present
-- Shows exact reset timestamps for each quota window
-- Refreshes automatically every 5 minutes
-- Supports manual refresh at any time
-- Adds and reauthenticates accounts in-app
-- Cancels an in-progress browser login flow in-app
-- Switches the active Codex account used by the CLI
-- Keeps account data local on your machine
-- Runs on macOS and includes a Windows implementation in [`windows`](./windows)
+It does two things well:
 
-## Why This Exists
+- shows live quota directly from OpenAI
+- switches the active Codex account used by the local CLI
 
-Most tools in this space are optimized for a different problem:
+## Why CodexControl
 
-- multi-provider dashboards
-- browser-heavy quota trackers
-- log-based estimators
-- account switchers without accurate live quota
+Most tools around this workflow fall into one of these categories:
 
-CodexControl is built specifically for people managing multiple Codex identities who care about the current truth:
+- multi-provider dashboards with too much surface area
+- browser-driven quota trackers with extra runtime overhead
+- scripts that estimate usage instead of reading the live account state
+- switchers that do not tell you which account is actually usable right now
 
-- which account is active
-- which account is still usable right now
-- when each limit resets
-- how to switch immediately
+CodexControl is intentionally narrower:
 
-## Accuracy Model
+- Codex-only
+- local-first
+- fast to scan
+- built around real quota windows and active-account control
 
-CodexControl reads quota from OpenAI using each account's local Codex auth state.
+## Core Capabilities
 
-To keep the numbers trustworthy:
+| Capability | What it does |
+| --- | --- |
+| Live quota reads | Fetches Codex quota windows directly from OpenAI using each account's local auth state |
+| 5-hour and 7-day windows | Preserves per-window usage independently when both windows are available |
+| Exact reset times | Shows when each quota window refills |
+| Active account switching | Replaces the ambient `~/.codex` session with the selected account |
+| Reauthentication | Refreshes a saved account without rebuilding the account list |
+| Local account management | Add, remove, relabel, refresh, and open account folders from the app |
+| Periodic refresh | Rechecks all accounts every 5 minutes |
 
-- requests use an ephemeral no-cache session
-- live reads are verified across multiple fetches
-- inconsistent responses are rejected instead of shown
-- stale snapshots are cleared on refresh failures
-- per-window usage is preserved exactly as returned by OpenAI, even when the account is currently blocked by a shorter window
+## How It Works
 
-This matters for Team and paid accounts where the 5-hour window can be exhausted while the 7-day window still has remaining capacity.
+1. CodexControl reads each account from local Codex homes.
+2. It loads `auth.json` for that account and refreshes tokens when required.
+3. It requests quota data directly from OpenAI.
+4. It keeps the account list sorted by practical usefulness, so usable accounts stay on top.
+5. When you switch accounts, it updates the ambient Codex session and restarts Codex Desktop to apply the new identity.
 
-## Privacy
+## Accuracy Approach
 
-CodexControl is local-first.
+Quota accuracy is a first-order requirement in this project.
+
+CodexControl uses these safeguards:
+
+- cache-bypassing network sessions
+- repeated live reads with equivalence checks
+- rejection of inconsistent live responses
+- per-window normalization that preserves the original OpenAI values
+- stale snapshot clearing on refresh failures
+
+This is especially important for Team and paid plans where the 5-hour window can be exhausted while the 7-day window still has remaining capacity.
+
+## Privacy and Security
+
+CodexControl is local-first by design.
 
 - account files stay on your machine
-- the app reads local `auth.json` files from each Codex home
-- the public repository does not include tokens, snapshots, or personal account data
+- the app reads local `auth.json` files from Codex homes
+- the public repository does not ship real account data, snapshots, or tokens
+- demo screenshots in this repository use synthetic accounts only
 
-macOS data path:
+Current storage locations:
 
-- `~/Library/Application Support/CodexControl`
-
-Windows data path:
-
-- `%APPDATA%\\CodexControl`
+- macOS: `~/Library/Application Support/CodexControl`
+- Windows: `%APPDATA%\\CodexControl`
 
 Migration from previous local app directories is automatic.
 
-## Requirements
+## Platform Notes
 
 ### macOS
 
-- macOS 14 or later
-- a working `codex` CLI installation
+- Built with SwiftUI + AppKit
+- Ships as a menu bar app
+- Supports Codex Desktop restart after account switching
 
 ### Windows
 
-- Python 3.11+
-- a working `codex` CLI installation
+- Lives under [`windows`](./windows)
+- Uses Python with a tray-first workflow
+- Includes add account, refresh, reauthenticate, switch, and install scripts
 
 ## Build From Source
 
@@ -109,15 +131,23 @@ Install the built EXE and register startup:
 powershell -ExecutionPolicy Bypass -File .\windows\install.ps1 -EnableStartup -Launch
 ```
 
-## Scope
+## Repository Structure
 
-CodexControl is intentionally focused. It is not trying to be:
+```text
+Sources/CodexControl/         macOS app
+Scripts/                      macOS packaging helpers
+Support/                      app metadata
+windows/                      Windows implementation and scripts
+docs/images/                  repository screenshots
+```
 
-- a general AI quota dashboard
-- a browser automation layer
-- a multi-provider billing console
+## Contributing
 
-It is for Codex accounts, live quota windows, and fast active-account control.
+Setup and contribution notes live in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Security
+
+Security reporting guidance lives in [SECURITY.md](./SECURITY.md).
 
 ## License
 
