@@ -52,7 +52,7 @@ This writes:
 
 ## GitHub Release Workflow
 
-Pushing a tag such as `v1.1.1` triggers `.github/workflows/release.yml`.
+Pushing a tag such as `v1.1.2` triggers `.github/workflows/release.yml`.
 
 That workflow:
 

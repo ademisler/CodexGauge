@@ -7,6 +7,12 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://codexcontrol.app/releases/v1.1.2.md</loc>
+    <lastmod>2026-04-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://codexcontrol.app/releases/v1.1.1.md</loc>
     <lastmod>2026-04-19</lastmod>
     <changefreq>monthly</changefreq>
