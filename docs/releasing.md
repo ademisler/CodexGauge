@@ -48,6 +48,21 @@ That workflow:
 - creates or updates the matching GitHub Release
 - uploads the zip and SHA-256 checksum
 
+## Homebrew Tap Update
+
+After a new GitHub Release is live:
+
+1. copy the release asset SHA-256 for `CodexControl-macos.zip`
+2. update `Casks/codexcontrol.rb` in `ademisler/homebrew-tap`
+3. bump the version and SHA there
+4. push the tap repo
+
+Install command:
+
+```bash
+brew install --cask ademisler/tap/codexcontrol
+```
+
 ## Site Deployment
 
 The website intentionally stays on manual deploy by default.

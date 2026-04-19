@@ -36,6 +36,19 @@ It does two things well:
 - shows live quota directly from OpenAI
 - switches the active Codex account used by the local CLI
 
+## Install
+
+### Homebrew
+
+```bash
+brew install --cask ademisler/tap/codexcontrol
+```
+
+### Direct Download
+
+- macOS release: [CodexControl 1.0.0](https://github.com/ademisler/CodexControl/releases/tag/v1.0.0)
+- Homebrew tap: [ademisler/homebrew-tap](https://github.com/ademisler/homebrew-tap)
+
 ## Why CodexControl
 
 Most tools around this workflow fall into one of these categories:
@@ -123,6 +136,7 @@ The project website lives at [codexcontrol.app](https://codexcontrol.app).
 - Static landing page source: [`site`](./site)
 - Cloudflare Pages config: [`wrangler.jsonc`](./wrangler.jsonc)
 - Deploy command: `./Scripts/deploy_site.sh`
+- Homebrew cask: `ademisler/tap/codexcontrol`
 
 ## Build From Source
 

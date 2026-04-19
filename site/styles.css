@@ -375,6 +375,57 @@ img {
   margin-top: 34px;
 }
 
+.install-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 18px;
+  margin-top: 34px;
+}
+
+.install-card {
+  padding: 22px;
+  border: 1px solid var(--stroke);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.install-label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--blue);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.install-card pre {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(7, 12, 24, 0.88);
+  overflow-x: auto;
+}
+
+.install-card code {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.96rem;
+}
+
+.install-card p {
+  margin: 0;
+}
+
+.install-card a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: rgba(122, 162, 255, 0.5);
+  text-underline-offset: 3px;
+}
+
 .feature-card,
 .step-card,
 .faq-list details {
@@ -471,6 +522,7 @@ img {
 
 @media (max-width: 1120px) {
   .hero,
+  .install-grid,
   .feature-grid,
   .step-list {
     grid-template-columns: 1fr;
