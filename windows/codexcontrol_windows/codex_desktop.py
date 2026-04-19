@@ -147,7 +147,6 @@ def _launch_hidden_powershell(script_path: Path) -> None:
 
     creation_flags = 0
     creation_flags |= getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    creation_flags |= getattr(subprocess, "DETACHED_PROCESS", 0)
     creation_flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
 
     subprocess.Popen(

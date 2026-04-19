@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from codexcontrol_windows.codex_desktop import (
+    _launch_hidden_powershell,
     build_restart_command,
     build_restart_script,
     encode_powershell_script,
@@ -51,6 +52,34 @@ class CodexDesktopTests(unittest.TestCase):
             restart_codex_desktop()
 
         launch_hidden.assert_called_once()
+
+    def test_launch_hidden_powershell_avoids_detached_process_flag(self) -> None:
+        create_no_window = 0x08000000
+        create_new_process_group = 0x00000200
+        detached_process = 0x00000008
+
+        with (
+            patch("codexcontrol_windows.codex_desktop.subprocess.STARTUPINFO", create=True) as startupinfo_cls,
+            patch("codexcontrol_windows.codex_desktop.subprocess.STARTF_USESHOWWINDOW", 0x00000001, create=True),
+            patch("codexcontrol_windows.codex_desktop.subprocess.CREATE_NO_WINDOW", create_no_window, create=True),
+            patch(
+                "codexcontrol_windows.codex_desktop.subprocess.CREATE_NEW_PROCESS_GROUP",
+                create_new_process_group,
+                create=True,
+            ),
+            patch("codexcontrol_windows.codex_desktop.subprocess.DETACHED_PROCESS", detached_process, create=True),
+            patch("codexcontrol_windows.codex_desktop.subprocess.DEVNULL"),
+            patch("codexcontrol_windows.codex_desktop.subprocess.Popen") as popen,
+        ):
+            startupinfo = startupinfo_cls.return_value
+            startupinfo.dwFlags = 0
+            _launch_hidden_powershell(Path("C:/temp/restart.ps1"))
+
+        popen.assert_called_once()
+        creation_flags = popen.call_args.kwargs["creationflags"]
+        self.assertTrue(creation_flags & create_no_window)
+        self.assertTrue(creation_flags & create_new_process_group)
+        self.assertFalse(creation_flags & detached_process)
 
 
 if __name__ == "__main__":

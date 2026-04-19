@@ -6,6 +6,10 @@ The format is based on Keep a Changelog and this project uses Semantic Versionin
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows packaged account switching so the hidden PowerShell restart helper no longer uses `DETACHED_PROCESS`, which previously prevented Codex Desktop from relaunching after a switch
+
 ## [1.1.1] - 2026-04-19
 
 ### Added
