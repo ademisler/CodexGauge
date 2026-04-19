@@ -9,6 +9,14 @@
 </p>
 
 <p align="center">
+  <a href="https://codexcontrol.app">Website</a>
+  ·
+  <a href="https://github.com/ademisler/CodexControl">GitHub</a>
+  ·
+  <a href="https://github.com/ademisler/CodexControl/blob/main/SECURITY.md">Security</a>
+</p>
+
+<p align="center">
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111111?logo=apple&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-supported-111111?logo=windows&logoColor=white">
   <img alt="Local-first" src="https://img.shields.io/badge/storage-local--first-111111">
@@ -102,6 +110,14 @@ Migration from previous local app directories is automatic.
 - Uses Python with a tray-first workflow
 - Includes add account, refresh, reauthenticate, switch, and install scripts
 
+## Website
+
+The project website lives at [codexcontrol.app](https://codexcontrol.app).
+
+- Static landing page source: [`site`](./site)
+- Cloudflare Pages config: [`wrangler.jsonc`](./wrangler.jsonc)
+- Deploy command: `npx wrangler pages deploy site --project-name codexcontrol`
+
 ## Build From Source
 
 ### macOS
@@ -137,6 +153,8 @@ powershell -ExecutionPolicy Bypass -File .\windows\install.ps1 -EnableStartup -L
 Sources/CodexControl/         macOS app
 Scripts/                      macOS packaging helpers
 Support/                      app metadata
+site/                         marketing website for codexcontrol.app
+wrangler.jsonc                Cloudflare Pages config
 windows/                      Windows implementation and scripts
 docs/images/                  repository screenshots
 ```

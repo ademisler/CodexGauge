@@ -1,0 +1,5 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "codexcontrol-site",
+  "pages_build_output_dir": "./site"
+}

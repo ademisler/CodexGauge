@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CodexControl | Codex quota tracking and account switching</title>
+    <meta
+      name="description"
+      content="CodexControl is a local-first desktop app for tracking live OpenAI Codex quotas, exact reset times, and switching between Codex accounts on macOS and Windows."
+    >
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    >
+    <meta name="theme-color" content="#111a37">
+    <meta name="application-name" content="CodexControl">
+    <meta name="apple-mobile-web-app-title" content="CodexControl">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="author" content="CodexControl">
+    <link rel="canonical" href="https://codexcontrol.app/">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/styles.css">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CodexControl">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://codexcontrol.app/">
+    <meta property="og:title" content="CodexControl | Codex quota tracking and account switching">
+    <meta
+      property="og:description"
+      content="Track live Codex quotas, exact reset times, and switch accounts locally without browser-driven overhead."
+    >
+    <meta property="og:image" content="https://codexcontrol.app/assets/codexcontrol-og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CodexControl | Codex quota tracking and account switching">
+    <meta
+      name="twitter:description"
+      content="Local-first desktop app for live Codex quota tracking, reset windows, and one-click account switching."
+    >
+    <meta name="twitter:image" content="https://codexcontrol.app/assets/codexcontrol-og.png">
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "CodexControl",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Windows",
+        "url": "https://codexcontrol.app/",
+        "downloadUrl": "https://github.com/ademisler/CodexControl",
+        "softwareVersion": "1.0",
+        "description": "Local-first desktop app for live OpenAI Codex quota tracking, exact reset times, and account switching.",
+        "image": "https://codexcontrol.app/assets/codexcontrol-og.png",
+        "author": {
+          "@type": "Person",
+          "name": "ademisler"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "sameAs": [
+          "https://github.com/ademisler/CodexControl"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="CodexControl home">
+          <span class="brand-mark">C</span>
+          <span class="brand-name">CodexControl</span>
+        </a>
+        <nav class="nav">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="https://github.com/ademisler/CodexControl">GitHub</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Codex-only. Local-first. Fast to scan.</p>
+            <h1>Track live Codex quotas and switch accounts without friction.</h1>
+            <p class="lede">
+              CodexControl gives macOS and Windows users a cleaner way to manage multiple
+              Codex accounts. It reads live quota windows directly, shows exact reset times,
+              and lets you move between accounts without losing track of what is actually usable.
+            </p>
+            <div class="cta-row">
+              <a class="button primary" href="https://github.com/ademisler/CodexControl">View on GitHub</a>
+              <a class="button secondary" href="#features">See capabilities</a>
+            </div>
+            <ul class="signal-list" aria-label="Key product signals">
+              <li><strong>Live reads</strong><span>Direct quota windows from OpenAI</span></li>
+              <li><strong>Exact resets</strong><span>5-hour and 7-day refill times</span></li>
+              <li><strong>Fast switching</strong><span>Change the active local Codex identity</span></li>
+            </ul>
+          </div>
+
+          <div class="hero-visual">
+            <div class="window-card">
+              <div class="window-header">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <img
+                src="/assets/codexcontrol-demo-ui.png"
+                alt="CodexControl desktop interface showing demo accounts and quota windows"
+                width="996"
+                height="1360"
+              >
+            </div>
+            <div class="status-float status-float-top">
+              <span class="status-label">Usable now</span>
+              <strong>Quota-first account sorting</strong>
+            </div>
+            <div class="status-float status-float-bottom">
+              <span class="status-label">Reset windows</span>
+              <strong>5h and 7d shown independently</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="trust-row" aria-label="Product highlights">
+          <article>
+            <span class="metric">5 min</span>
+            <p>Automatic background refresh cadence</p>
+          </article>
+          <article>
+            <span class="metric">2 OS</span>
+            <p>Native macOS app and Windows tray app</p>
+          </article>
+          <article>
+            <span class="metric">0 cloud sync</span>
+            <p>Auth state and snapshots stay on-device</p>
+          </article>
+        </section>
+
+        <section class="section" id="features">
+          <div class="section-head">
+            <p class="eyebrow">Core capabilities</p>
+            <h2>Built for practical Codex account operations</h2>
+            <p>
+              The product is intentionally narrow: accurate quota visibility, clear reset windows,
+              and reliable local account switching.
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>Live quota windows</h3>
+              <p>
+                Reads quota state directly from OpenAI using each account’s local auth data instead
+                of scraping dashboards or estimating usage.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>5-hour and 7-day tracking</h3>
+              <p>
+                Team and paid account windows stay separated, so a depleted short window does not
+                corrupt the weekly view.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Exact reset timing</h3>
+              <p>
+                Every window shows its next refill time. Sorting favors accounts you can use now,
+                then those that recover the soonest.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Active account switching</h3>
+              <p>
+                Switches the local Codex identity and restarts the desktop app on macOS so the
+                new session becomes effective immediately.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Minimal overhead</h3>
+              <p>
+                No browser-resident quota loop, no multi-provider sprawl, and no unnecessary
+                background surface area.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Local-first by default</h3>
+              <p>
+                Tokens, account homes, and snapshots stay on your machine. Public repository
+                assets use demo data only.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-alt" id="how-it-works">
+          <div class="section-head">
+            <p class="eyebrow">How it works</p>
+            <h2>One workflow, optimized for clarity</h2>
+          </div>
+
+          <div class="step-list">
+            <article class="step-card">
+              <span class="step-index">01</span>
+              <h3>Load local account homes</h3>
+              <p>CodexControl reads the account homes you manage on the device.</p>
+            </article>
+            <article class="step-card">
+              <span class="step-index">02</span>
+              <h3>Refresh auth if required</h3>
+              <p>It uses the local auth state and refreshes tokens when a live read needs it.</p>
+            </article>
+            <article class="step-card">
+              <span class="step-index">03</span>
+              <h3>Query real quota state</h3>
+              <p>Quota windows are normalized conservatively so weekly and short windows remain accurate.</p>
+            </article>
+            <article class="step-card">
+              <span class="step-index">04</span>
+              <h3>Prioritize usable accounts</h3>
+              <p>The list keeps immediately usable accounts on top and pushes blocked accounts below them.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section faq">
+          <div class="section-head">
+            <p class="eyebrow">FAQ</p>
+            <h2>Questions people usually ask first</h2>
+          </div>
+
+          <div class="faq-list">
+            <details open>
+              <summary>Does the app depend on CodexBar?</summary>
+              <p>No. CodexControl is a separate app with its own runtime, storage, and quota-fetching logic.</p>
+            </details>
+            <details>
+              <summary>Does it upload my account data anywhere?</summary>
+              <p>No. The app is local-first. It reads local account state and requests quota data directly from OpenAI.</p>
+            </details>
+            <details>
+              <summary>Which platforms are supported?</summary>
+              <p>The repository ships a native macOS menu bar app and a Windows tray implementation.</p>
+            </details>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>
+          <span class="brand-mark footer-mark">C</span>
+          <strong>CodexControl</strong>
+        </div>
+        <p>Local-first Codex quota tracking and account switching for macOS and Windows.</p>
+        <div class="footer-links">
+          <a href="https://github.com/ademisler/CodexControl">GitHub</a>
+          <a href="https://github.com/ademisler/CodexControl/blob/main/README.md">Documentation</a>
+          <a href="https://github.com/ademisler/CodexControl/blob/main/SECURITY.md">Security</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

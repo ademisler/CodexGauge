@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>CodexControl</title>
+  <defs>
+    <linearGradient id="g" x1="14" x2="50" y1="10" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8aaeff"/>
+      <stop offset="1" stop-color="#4e74ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#0b142a"/>
+  <path d="M45.8 19.8c-2.9-2.6-7-4.1-11.8-4.1-9.8 0-16.6 6.8-16.6 16.4 0 9.7 6.8 16.4 16.6 16.4 4.8 0 8.9-1.5 11.8-4.1l-4.1-4.2c-1.8 1.5-4.3 2.4-7.3 2.4-6.3 0-10.7-4.2-10.7-10.5s4.4-10.5 10.7-10.5c3 0 5.5.9 7.3 2.4l4.1-4.2Z" fill="url(#g)"/>
+</svg>
