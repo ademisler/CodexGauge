@@ -12,5 +12,6 @@ DerivedData/
 __pycache__/
 .tmp/
 windows/dist/
+windows/build-assets/
 windows/.DS_Store
 site/assets/codexcontrol-site-preview.png

@@ -17,6 +17,7 @@ from PIL import Image, ImageDraw, ImageTk
 import pystray
 
 from .account_manager import CodexAccountManager, CodexAccountManagerError, ManagedLoginProcess
+from .brand_icon import build_orbit_dial_icon
 from .codex_api import AuthBackedIdentity
 from .codex_api import fetch_snapshot
 from .codex_desktop import CodexDesktopControlError, restart_codex_desktop
@@ -1806,39 +1807,12 @@ class CodexControlWindowsApp:
             "neutral": self.palette["accent"],
         }
         accent = color_map.get(state, self.palette["accent"])
-        image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(image)
-
-        outer_padding = max(2, int(size * 0.08))
-        corner_radius = max(8, int(size * 0.24))
-        draw.rounded_rectangle(
-            (outer_padding, outer_padding, size - outer_padding, size - outer_padding),
-            radius=corner_radius,
-            fill=self.palette["dark_icon"],
+        return build_orbit_dial_icon(
+            size,
+            accent=accent,
+            panel_fill=self.palette["accent"],
+            dark=self.palette["dark_icon"],
         )
-
-        ring_padding = int(size * 0.26)
-        ring_width = max(2, int(size * 0.08))
-        ring_bounds = (ring_padding, ring_padding, size - ring_padding, size - ring_padding)
-        draw.arc(ring_bounds, start=140, end=400, fill="#e8eff2", width=ring_width)
-        draw.arc(ring_bounds, start=140, end=320, fill=accent, width=ring_width)
-
-        center = size // 2
-        pointer_end = (int(size * 0.66), int(size * 0.36))
-        draw.line((center, center, pointer_end[0], pointer_end[1]), fill="#ffffff", width=max(2, int(size * 0.05)))
-        hub = max(2, int(size * 0.05))
-        draw.ellipse((center - hub, center - hub, center + hub, center + hub), fill="#ffffff")
-
-        dot_size = max(4, int(size * 0.15))
-        dot_left = size - outer_padding - dot_size - max(2, int(size * 0.05))
-        dot_top = size - outer_padding - dot_size - max(2, int(size * 0.05))
-        draw.ellipse(
-            (dot_left, dot_top, dot_left + dot_size, dot_top + dot_size),
-            fill=accent,
-            outline="#ffffff",
-            width=max(1, int(size * 0.03)),
-        )
-        return image
 
     def _short_path(self, path: str) -> str:
         if len(path) <= 34:
