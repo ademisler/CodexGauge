@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import base64
 import os
-from pathlib import Path
+import subprocess
+from pathlib import Path, PureWindowsPath
 
 from .file_locations import APP_SUPPORT_DIRECTORY, ensure_directories
 
@@ -10,7 +11,6 @@ from .file_locations import APP_SUPPORT_DIRECTORY, ensure_directories
 DEFAULT_RESTART_DELAY_SECONDS = 0.8
 RESTART_LOG_PATH = APP_SUPPORT_DIRECTORY / "codex-desktop-restart.log"
 RESTART_SCRIPT_PATH = APP_SUPPORT_DIRECTORY / "codex-desktop-restart.ps1"
-RESTART_LAUNCHER_PATH = APP_SUPPORT_DIRECTORY / "codex-desktop-restart.cmd"
 POWERSHELL_EXE = Path(os.environ.get("WINDIR", r"C:\Windows")) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
 
 
@@ -113,10 +113,9 @@ def encode_powershell_script(script: str) -> str:
 def restart_codex_desktop(delay_seconds: float = DEFAULT_RESTART_DELAY_SECONDS) -> None:
     ensure_directories()
     RESTART_SCRIPT_PATH.write_text(build_restart_script(delay_seconds), encoding="utf-8")
-    RESTART_LAUNCHER_PATH.write_text(build_restart_launcher(), encoding="ascii")
 
     try:
-        os.startfile(str(RESTART_LAUNCHER_PATH))
+        _launch_hidden_powershell(RESTART_SCRIPT_PATH)
     except OSError as error:
         raise CodexDesktopControlError("Failed to restart Codex Desktop.") from error
 
@@ -125,16 +124,38 @@ def _powershell_literal_path(path: Path) -> str:
     return "'" + str(path).replace("'", "''") + "'"
 
 
-def build_restart_launcher() -> str:
-    powershell_path = _cmd_literal_path(POWERSHELL_EXE)
-    script_path = _cmd_literal_path(RESTART_SCRIPT_PATH)
-    return (
-        "@echo off\r\n"
-        f"start \"\" /min {powershell_path} -NoProfile -NonInteractive -WindowStyle Hidden "
-        f"-ExecutionPolicy Bypass -File {script_path}\r\n"
-        "exit /b 0\r\n"
+def build_restart_command(script_path: Path = RESTART_SCRIPT_PATH) -> list[str]:
+    powershell_exe = str(PureWindowsPath(str(POWERSHELL_EXE)))
+    normalized_script_path = str(PureWindowsPath(str(script_path)))
+    return [
+        powershell_exe,
+        "-NoProfile",
+        "-NonInteractive",
+        "-WindowStyle",
+        "Hidden",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        normalized_script_path,
+    ]
+
+
+def _launch_hidden_powershell(script_path: Path) -> None:
+    startup_info = subprocess.STARTUPINFO()
+    startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startup_info.wShowWindow = 0
+
+    creation_flags = 0
+    creation_flags |= getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    creation_flags |= getattr(subprocess, "DETACHED_PROCESS", 0)
+    creation_flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+
+    subprocess.Popen(
+        build_restart_command(script_path),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        startupinfo=startup_info,
+        creationflags=creation_flags,
+        close_fds=True,
     )
-
-
-def _cmd_literal_path(path: Path) -> str:
-    return '"' + str(path).replace('"', '""') + '"'

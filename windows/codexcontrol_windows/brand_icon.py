@@ -27,8 +27,8 @@ def build_orbit_dial_icon(
         rgb = tuple(int(top_rgb[idx] + (bottom_rgb[idx] - top_rgb[idx]) * mix) for idx in range(3))
         gradient_draw.line((0, y, size, y), fill=rgb + (255,))
 
-    outer_padding = max(2, int(size * 0.08))
-    corner_radius = max(8, int(size * 0.24))
+    outer_padding = _scale(size, 7)
+    corner_radius = _scale(size, 16)
     mask = Image.new("L", (size, size), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle(
@@ -40,7 +40,7 @@ def build_orbit_dial_icon(
 
     glow_layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow_layer)
-    glow_radius = int(size * 0.28)
+    glow_radius = _scale(size, 22)
     center = size / 2
     glow_draw.ellipse(
         (
@@ -49,19 +49,26 @@ def build_orbit_dial_icon(
             center + glow_radius,
             center + glow_radius,
         ),
-        fill=_hex_to_rgba(glow, 92),
+        fill=_hex_to_rgba(glow, 128),
     )
-    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=max(2, size * 0.05)))
+    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=max(2, int(size * 0.06))))
     image.alpha_composite(glow_layer)
 
     draw = ImageDraw.Draw(image)
-    ring_padding = int(size * 0.258)
-    ring_width = max(2, int(size * 0.1))
+    ring_padding = center - _scale_float(size, 15.5)
+    ring_width = max(2, _scale(size, 6.4))
     ring_bounds = (ring_padding, ring_padding, size - ring_padding, size - ring_padding)
     draw.arc(ring_bounds, start=0, end=359, fill=dark, width=ring_width)
-    draw.arc(ring_bounds, start=-58, end=64, fill=accent, width=ring_width)
+    _draw_arc_with_round_caps(
+        draw,
+        ring_bounds,
+        start_angle=-70.0,
+        end_angle=271.5,
+        fill=accent,
+        width=ring_width,
+    )
 
-    hub_radius = size * 0.095
+    hub_radius = _scale_float(size, 6.1)
     draw.ellipse(
         (
             center - hub_radius,
@@ -72,7 +79,7 @@ def build_orbit_dial_icon(
         fill=dark,
     )
 
-    center_dot_radius = size * 0.037
+    center_dot_radius = _scale_float(size, 2.65)
     draw.ellipse(
         (
             center - center_dot_radius,
@@ -83,11 +90,9 @@ def build_orbit_dial_icon(
         fill=core,
     )
 
-    orbit_radius = size * 0.24
-    orbit_angle = math.radians(-34)
-    orbit_x = center + math.cos(orbit_angle) * orbit_radius
-    orbit_y = center + math.sin(orbit_angle) * orbit_radius
-    orbit_dot_radius = size * 0.049
+    orbit_x = _scale_float(size, 44.9)
+    orbit_y = _scale_float(size, 23.4)
+    orbit_dot_radius = _scale_float(size, 3.15)
     draw.ellipse(
         (
             orbit_x - orbit_dot_radius,
@@ -95,21 +100,74 @@ def build_orbit_dial_icon(
             orbit_x + orbit_dot_radius,
             orbit_y + orbit_dot_radius,
         ),
-        fill=dark,
+        fill=accent,
     )
 
     if panel_fill:
-        border = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        border_draw = ImageDraw.Draw(border)
+        border_layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        border_draw = ImageDraw.Draw(border_layer)
         border_draw.rounded_rectangle(
             (outer_padding, outer_padding, size - outer_padding, size - outer_padding),
             radius=corner_radius,
             outline=_hex_to_rgba(border, 180),
-            width=max(1, int(size * 0.03)),
+            width=max(1, _scale(size, 1.25)),
         )
-        image.alpha_composite(border)
+        image.alpha_composite(border_layer)
 
     return image
+
+
+def _draw_arc_with_round_caps(
+    draw: ImageDraw.ImageDraw,
+    bounds: tuple[float, float, float, float],
+    *,
+    start_angle: float,
+    end_angle: float,
+    fill: str,
+    width: int,
+) -> None:
+    segments: list[tuple[float, float]]
+    if end_angle >= start_angle:
+        segments = [(start_angle, end_angle)]
+    else:
+        segments = [(start_angle, 359.99), (0.0, end_angle)]
+
+    for start, end in segments:
+        draw.arc(bounds, start=start, end=end, fill=fill, width=width)
+
+    cap_radius = width / 2
+    for angle in (start_angle, end_angle):
+        x, y = _point_on_circle(bounds, angle)
+        draw.ellipse(
+            (
+                x - cap_radius,
+                y - cap_radius,
+                x + cap_radius,
+                y + cap_radius,
+            ),
+            fill=fill,
+        )
+
+
+def _point_on_circle(bounds: tuple[float, float, float, float], angle: float) -> tuple[float, float]:
+    left, top, right, bottom = bounds
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+    radius_x = (right - left) / 2
+    radius_y = (bottom - top) / 2
+    radians = math.radians(angle)
+    return (
+        center_x + (radius_x * math.cos(radians)),
+        center_y + (radius_y * math.sin(radians)),
+    )
+
+
+def _scale(size: int, value: float) -> int:
+    return max(1, int(round(size * (value / 64.0))))
+
+
+def _scale_float(size: int, value: float) -> float:
+    return size * (value / 64.0)
 
 
 def _hex_to_rgba(value: str, alpha: int) -> tuple[int, int, int, int]:

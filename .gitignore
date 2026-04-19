@@ -14,6 +14,5 @@ __pycache__/
 .playwright-cli/
 .sparkle-dist/
 windows/dist/
-windows/build-assets/
 windows/.DS_Store
 site/assets/codexcontrol-site-preview.png

@@ -21,7 +21,8 @@ from .brand_icon import build_orbit_dial_icon
 from .codex_api import AuthBackedIdentity
 from .codex_api import fetch_snapshot
 from .codex_desktop import CodexDesktopControlError, restart_codex_desktop
-from .models import AccountRuntimeState, AccountUsageSnapshot, StoredAccount, StoredAccountSource, normalize_identifier, utc_now
+from .models import AccountRuntimeState, AccountUsageSnapshot, StoredAccount, StoredAccountSource, utc_now
+from .presentation_logic import account_sort_key, is_active_account
 from .stores import AccountStore, SnapshotStore
 
 
@@ -33,6 +34,26 @@ class RoundedButtonTheme:
     border: str
     disabled_bg: str
     disabled_fg: str
+
+
+@dataclass(slots=True)
+class PresentationState:
+    search_query: str
+    filtered_accounts: list[StoredAccount]
+    account_count: int
+    low_quota_count: int
+    usable_quota_count: int
+    exhausted_count: int
+
+    @property
+    def menu_bar_quota_state(self) -> str:
+        if self.account_count == 0:
+            return "empty"
+        if self.usable_quota_count > 0:
+            return "available"
+        if self.exhausted_count == self.account_count:
+            return "unavailable"
+        return "unresolved"
 
 
 class RoundedButton(tk.Canvas):
@@ -69,6 +90,8 @@ class RoundedButton(tk.Canvas):
         self.pad_y = pad_y
         self.enabled = True
         self._hovering = False
+        self._text_font = tkfont.Font(font=self.font)
+        self._icon_resolved_font = tkfont.Font(font=self.icon_font) if self.icon_font else None
 
         self.bind("<Configure>", self._redraw)
         self.bind("<Enter>", self._on_enter)
@@ -127,25 +150,22 @@ class RoundedButton(tk.Canvas):
             border = self.theme.border
 
         self._rounded_rect(0, 0, width - 1, height - 1, self.radius, fill, border)
-        text_font = tkfont.Font(font=self.font)
-        text_width = text_font.measure(self.text)
+        text_width = self._text_font.measure(self.text)
         icon_width = 0
-        if self.icon and self.icon_font:
-            icon_font = tkfont.Font(font=self.icon_font)
-            icon_width = icon_font.measure(self.icon) + 8
+        if self.icon and self._icon_resolved_font:
+            icon_width = self._icon_resolved_font.measure(self.icon) + 8
 
         total_width = text_width + icon_width
         start_x = (width - total_width) / 2
 
-        if self.icon and self.icon_font:
-            icon_font = tkfont.Font(font=self.icon_font)
-            icon_text_width = icon_font.measure(self.icon)
+        if self.icon and self._icon_resolved_font:
+            icon_text_width = self._icon_resolved_font.measure(self.icon)
             self.create_text(
                 start_x + (icon_text_width / 2),
                 height // 2,
                 text=self.icon,
                 fill=fg,
-                font=self.icon_font,
+                font=self._icon_resolved_font,
             )
             start_x += icon_text_width + 8
 
@@ -154,19 +174,17 @@ class RoundedButton(tk.Canvas):
             height // 2,
             text=self.text,
             fill=fg,
-            font=self.font,
+            font=self._text_font,
         )
 
     def _measure(self) -> tuple[int, int]:
-        text_font = tkfont.Font(font=self.font)
-        text_width = text_font.measure(self.text)
-        text_height = text_font.metrics("linespace")
+        text_width = self._text_font.measure(self.text)
+        text_height = self._text_font.metrics("linespace")
         icon_width = 0
         icon_height = 0
-        if self.icon and self.icon_font:
-            icon_font = tkfont.Font(font=self.icon_font)
-            icon_width = icon_font.measure(self.icon) + 8
-            icon_height = icon_font.metrics("linespace")
+        if self.icon and self._icon_resolved_font:
+            icon_width = self._icon_resolved_font.measure(self.icon) + 8
+            icon_height = self._icon_resolved_font.metrics("linespace")
 
         width = text_width + icon_width + (self.pad_x * 2)
         height = max(text_height, icon_height) + (self.pad_y * 2)
@@ -295,13 +313,18 @@ class DarkScrollbar(tk.Canvas):
 
 class CodexControlWindowsApp:
     AUTO_REFRESH_MS = 5 * 60 * 1000
+    GROUP_REFRESH_FLUSH_MS = 120
     QUEUE_POLL_MS = 150
+    SEARCH_RENDER_MS = 80
+    CARD_RENDER_BATCH_ROWS = 2
+    ELLIPSIS_CACHE_MAX = 4096
 
     def __init__(self, start_hidden: bool = False) -> None:
         self.account_store = AccountStore()
         self.snapshot_store = SnapshotStore()
         self.account_manager = CodexAccountManager()
-        self.executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="codexcontrol")
+        worker_count = min(12, max(4, (os.cpu_count() or 4) * 2))
+        self.executor = ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="codexcontrol")
         self.events: queue.Queue[tuple[Any, ...]] = queue.Queue()
 
         self.accounts: list[StoredAccount] = []
@@ -317,8 +340,26 @@ class CodexControlWindowsApp:
         self._add_handle: ManagedLoginProcess | None = None
         self._reauth_handle: ManagedLoginProcess | None = None
         self._quitting = False
+        self._group_refresh_flush_job: str | None = None
+        self._group_refresh_flush_pending = False
         self._resize_job: str | None = None
+        self._render_job: str | None = None
+        self._cards_render_job: str | None = None
+        self._search_render_job: str | None = None
+        self._queue_poll_job: str | None = None
+        self._auto_refresh_job: str | None = None
+        self._initial_refresh_job: str | None = None
+        self._restart_desktop_job: str | None = None
+        self._cards_render_token = 0
         self._last_render_width = 0
+        self._accounts_revision = 0
+        self._runtime_revision = 0
+        self._search_revision = 0
+        self._presentation_cache_key: tuple[int, int, int] | None = None
+        self._presentation_cache: PresentationState | None = None
+        self._font_object_cache: dict[tuple[Any, ...], tkfont.Font] = {}
+        self._ellipsize_cache: dict[tuple[str, tuple[Any, ...], int], str] = {}
+        self._metric_value_labels: dict[str, tk.Label] = {}
         self.start_hidden = start_hidden
 
         self.palette = {
@@ -362,20 +403,39 @@ class CodexControlWindowsApp:
         self._apply_dark_title_bar()
         self._setup_tray_icon()
         self._load_initial_state()
-        self._render()
+        self._render_now()
         if self.start_hidden:
             self.hide_window()
 
-        self.search_var.trace_add("write", lambda *_: self._render())
-        self.root.after(self.QUEUE_POLL_MS, self._process_event_queue)
-        self.root.after(800, self.refresh_all)
-        self.root.after(self.AUTO_REFRESH_MS, self._auto_refresh_tick)
+        self.search_var.trace_add("write", lambda *_: self._on_search_change())
+        self._queue_poll_job = self.root.after(self.QUEUE_POLL_MS, self._process_event_queue)
+        self._initial_refresh_job = self.root.after(800, self.refresh_all)
+        self._auto_refresh_job = self.root.after(self.AUTO_REFRESH_MS, self._auto_refresh_tick)
 
     def run(self) -> None:
         self.root.mainloop()
 
     def quit(self) -> None:
         self._quitting = True
+        for job_name in (
+            "_search_render_job",
+            "_cards_render_job",
+            "_render_job",
+            "_resize_job",
+            "_group_refresh_flush_job",
+            "_queue_poll_job",
+            "_auto_refresh_job",
+            "_initial_refresh_job",
+            "_restart_desktop_job",
+        ):
+            job = getattr(self, job_name, None)
+            if job is None:
+                continue
+            try:
+                self.root.after_cancel(job)
+            except tk.TclError:
+                pass
+            setattr(self, job_name, None)
         if self.tray_icon is not None:
             try:
                 self.tray_icon.stop()
@@ -393,6 +453,13 @@ class CodexControlWindowsApp:
         self.root.withdraw()
 
     def refresh_all(self) -> None:
+        if self._initial_refresh_job is not None:
+            try:
+                self.root.after_cancel(self._initial_refresh_job)
+            except tk.TclError:
+                pass
+            self._initial_refresh_job = None
+
         if not self.accounts or self.is_refreshing_all:
             return
 
@@ -403,7 +470,7 @@ class CodexControlWindowsApp:
             state.is_loading = True
             self.runtime_states[account.id] = state
             self._submit_future(
-                self.executor.submit(fetch_snapshot, account),
+                self.executor.submit(fetch_snapshot, account, False),
                 "refresh_result",
                 account.id,
                 True,
@@ -418,7 +485,7 @@ class CodexControlWindowsApp:
         state.is_loading = True
         self.runtime_states[account.id] = state
         self._submit_future(
-            self.executor.submit(fetch_snapshot, account),
+            self.executor.submit(fetch_snapshot, account, True),
             "refresh_result",
             account.id,
             False,
@@ -475,6 +542,7 @@ class CodexControlWindowsApp:
         account.nickname = draft or None
         self.nickname_drafts[account_id] = draft
         account.updated_at = utc_now()
+        self._mark_accounts_dirty()
         self._persist_accounts_silently()
         self._render()
 
@@ -495,6 +563,8 @@ class CodexControlWindowsApp:
         self.accounts = [candidate for candidate in self.accounts if candidate.id != account.id]
         self.runtime_states.pop(account.id, None)
         self.nickname_drafts.pop(account.id, None)
+        self._mark_accounts_dirty()
+        self._mark_runtime_dirty()
         try:
             self.account_manager.remove_managed_files_if_owned(account)
             self.account_store.save_accounts(self.accounts)
@@ -521,12 +591,18 @@ class CodexControlWindowsApp:
                 "Restarting Codex Desktop to apply the new session."
             )
             self._render()
-            self.root.after(250, self._restart_codex_desktop)
+            if self._restart_desktop_job is not None:
+                try:
+                    self.root.after_cancel(self._restart_desktop_job)
+                except tk.TclError:
+                    pass
+            self._restart_desktop_job = self.root.after(250, self._restart_codex_desktop)
         except CodexAccountManagerError as error:
             self.status_message = str(error)
             self._render()
 
     def _restart_codex_desktop(self) -> None:
+        self._restart_desktop_job = None
         try:
             restart_codex_desktop()
         except CodexDesktopControlError as error:
@@ -824,6 +900,8 @@ class CodexControlWindowsApp:
         for account in self.accounts:
             self.nickname_drafts[account.id] = account.nickname or ""
 
+        self._mark_accounts_dirty()
+        self._mark_runtime_dirty()
         self._ensure_selection()
         self._refresh_active_identity()
 
@@ -838,6 +916,7 @@ class CodexControlWindowsApp:
         future.add_done_callback(callback)
 
     def _process_event_queue(self) -> None:
+        self._queue_poll_job = None
         processed = 0
         while processed < 100:
             try:
@@ -858,7 +937,7 @@ class CodexControlWindowsApp:
                 self._apply_reauth_result(account_id, account, error)
 
         if not self._quitting:
-            self.root.after(self.QUEUE_POLL_MS, self._process_event_queue)
+            self._queue_poll_job = self.root.after(self.QUEUE_POLL_MS, self._process_event_queue)
 
     def _apply_refresh_result(
         self,
@@ -880,10 +959,16 @@ class CodexControlWindowsApp:
             state.error_message = str(error) if error else "Unknown refresh error."
             self.runtime_states[account_id] = state
 
+        self._mark_runtime_dirty()
         if from_group:
             self._group_refresh_pending = max(0, self._group_refresh_pending - 1)
+            self._group_refresh_flush_pending = True
             if self._group_refresh_pending == 0:
                 self.is_refreshing_all = False
+                self._flush_group_refresh_updates()
+            else:
+                self._schedule_group_refresh_flush()
+            return
 
         self._persist_snapshots_silently()
         self._render()
@@ -895,6 +980,7 @@ class CodexControlWindowsApp:
         if account is not None:
             self.accounts = self.account_store.merge(self.accounts, [account])
             self.account_store.save_accounts(self.accounts)
+            self._mark_accounts_dirty()
             matched = next((candidate for candidate in self.accounts if candidate.matches(account)), account)
             self.selected_account_id = matched.id
             self.nickname_drafts[matched.id] = matched.nickname or ""
@@ -916,6 +1002,7 @@ class CodexControlWindowsApp:
         if account is not None:
             self.accounts = self.account_store.merge(self.accounts, [account])
             self.account_store.save_accounts(self.accounts)
+            self._mark_accounts_dirty()
             self.status_message = f"{account.display_name} reauthenticated."
             refreshed = next((candidate for candidate in self.accounts if candidate.id == original_account_id), None)
             if refreshed is not None:
@@ -943,6 +1030,7 @@ class CodexControlWindowsApp:
             did_change = True
 
         if did_change:
+            self._mark_accounts_dirty()
             self._persist_accounts_silently()
 
     def _persist_accounts_silently(self) -> None:
@@ -962,11 +1050,39 @@ class CodexControlWindowsApp:
         except Exception as error:
             self.status_message = str(error)
 
+    def _schedule_group_refresh_flush(self) -> None:
+        if self._group_refresh_flush_job is not None:
+            return
+        self._group_refresh_flush_job = self.root.after(
+            self.GROUP_REFRESH_FLUSH_MS,
+            self._flush_group_refresh_updates,
+        )
+
+    def _flush_group_refresh_updates(self) -> None:
+        scheduled_job = self._group_refresh_flush_job
+        self._group_refresh_flush_job = None
+        if scheduled_job is not None:
+            try:
+                self.root.after_cancel(scheduled_job)
+            except tk.TclError:
+                pass
+
+        if not self._group_refresh_flush_pending:
+            return
+
+        self._group_refresh_flush_pending = False
+        self._persist_snapshots_silently()
+        self._render()
+
     def _ensure_selection(self) -> None:
         valid_ids = {account.id for account in self.accounts}
         if self.selected_account_id in valid_ids:
             return
-        self.selected_account_id = self.filtered_accounts[0].id if self.filtered_accounts else None
+        presentation = self._build_presentation_state()
+        if len(presentation.filtered_accounts) == 1:
+            self.selected_account_id = presentation.filtered_accounts[0].id
+        else:
+            self.selected_account_id = None
 
     def _refresh_active_identity(self) -> None:
         self.active_identity = self.account_manager.load_active_identity()
@@ -980,29 +1096,11 @@ class CodexControlWindowsApp:
                 break
         if not replaced:
             self.accounts.append(account)
+        self._mark_accounts_dirty()
         self._persist_accounts_silently()
 
     def _is_active_account(self, account: StoredAccount) -> bool:
-        identity = self.active_identity
-        if identity is None:
-            return False
-
-        account_subject = normalize_identifier(account.auth_subject)
-        identity_subject = normalize_identifier(identity.auth_subject)
-        if account_subject and identity_subject and account_subject == identity_subject:
-            return True
-
-        account_email = normalize_identifier(account.email_hint)
-        identity_email = normalize_identifier(identity.email)
-        if account_email and identity_email and account_email == identity_email:
-            return True
-
-        account_provider = normalize_identifier(account.provider_account_id)
-        identity_provider = normalize_identifier(identity.provider_account_id)
-        if account_provider and identity_provider and account_provider == identity_provider:
-            return True
-
-        return False
+        return is_active_account(account, self.active_identity)
 
     def _can_switch_account(self, account: StoredAccount) -> bool:
         if self._is_active_account(account):
@@ -1010,108 +1108,72 @@ class CodexControlWindowsApp:
         return (Path(account.codex_home_path) / "auth.json").exists()
 
     def _auto_refresh_tick(self) -> None:
+        self._auto_refresh_job = None
         if not self._quitting:
             self.refresh_all()
-            self.root.after(self.AUTO_REFRESH_MS, self._auto_refresh_tick)
+            self._auto_refresh_job = self.root.after(self.AUTO_REFRESH_MS, self._auto_refresh_tick)
 
     @property
     def filtered_accounts(self) -> list[StoredAccount]:
-        query = self.search_var.get().strip().lower()
-        accounts = self.accounts
-        if query:
-            accounts = [
-                account
-                for account in self.accounts
-                if any(
-                    query in candidate.lower()
-                    for candidate in (
-                        account.display_name,
-                        account.email_hint or "",
-                        account.auth_subject or "",
-                        account.provider_account_id or "",
-                        account.codex_home_path,
-                    )
-                )
-            ]
-
-        def key(account: StoredAccount):
-            snapshot = self.runtime_states.get(account.id, AccountRuntimeState()).snapshot
-            priority = snapshot.sort_priority if snapshot else 2
-            usable = 0 if snapshot and snapshot.has_usable_quota_now else 1
-            remaining = -(snapshot.lowest_remaining_percent if snapshot else -1)
-            reset_at = snapshot.next_reset_at.timestamp() if snapshot and snapshot.next_reset_at else float("inf")
-            name = account.display_name.casefold()
-            return priority, usable, remaining, reset_at, name
-
-        return sorted(accounts, key=key)
+        return self._build_presentation_state().filtered_accounts
 
     @property
     def account_count(self) -> int:
-        return len(self.accounts)
+        return self._build_presentation_state().account_count
 
     @property
     def low_quota_count(self) -> int:
-        total = 0
-        for account in self.accounts:
-            snapshot = self.runtime_states.get(account.id, AccountRuntimeState()).snapshot
-            if snapshot and snapshot.lowest_remaining_percent <= 20:
-                total += 1
-        return total
+        return self._build_presentation_state().low_quota_count
 
     @property
     def usable_quota_count(self) -> int:
-        total = 0
-        for account in self.accounts:
-            snapshot = self.runtime_states.get(account.id, AccountRuntimeState()).snapshot
-            if snapshot and snapshot.has_usable_quota_now:
-                total += 1
-        return total
+        return self._build_presentation_state().usable_quota_count
 
     @property
     def menu_bar_quota_state(self) -> str:
-        if not self.accounts:
-            return "empty"
-        if self.usable_quota_count > 0:
-            return "available"
-
-        exhausted_count = 0
-        for account in self.accounts:
-            snapshot = self.runtime_states.get(account.id, AccountRuntimeState()).snapshot
-            if snapshot is not None and not snapshot.has_usable_quota_now:
-                exhausted_count += 1
-
-        if exhausted_count == self.account_count:
-            return "unavailable"
-        return "unresolved"
+        return self._build_presentation_state().menu_bar_quota_state
 
     def _render(self) -> None:
+        if self._quitting or self._render_job is not None:
+            return
+        try:
+            self._render_job = self.root.after_idle(self._render_now)
+        except tk.TclError:
+            self._render_job = None
+
+    def _render_now(self) -> None:
+        self._render_job = None
+        presentation = self._build_presentation_state()
         self.subtitle_label.configure(
-            text=self._header_status_text(),
+            text=self._header_status_text(presentation),
             wraplength=self._header_wrap_width(),
         )
         self.add_button.set_text("Cancel" if self.is_adding_account else "Add")
         self.add_button.set_icon(self.icons["trash"] if self.is_adding_account else self.icons["add"])
         self.add_button.set_theme(self._button_theme("accent" if self.is_adding_account else "surface"))
         self.refresh_button.set_enabled(not self.is_refreshing_all)
-        self._render_metrics()
-        self._render_cards()
-        self._update_tray()
+        self._render_metrics(presentation)
+        self._render_cards(presentation)
+        self._update_tray(presentation)
 
-    def _render_metrics(self) -> None:
-        for child in self.metrics_frame.winfo_children():
-            child.destroy()
+    def _render_metrics(self, presentation: PresentationState) -> None:
+        if not self._metric_value_labels:
+            for column in range(3):
+                self.metrics_frame.grid_columnconfigure(column, weight=1, uniform="metrics")
 
-        metrics = [
-            ("Accounts", str(self.account_count), self.icons["metric_accounts"], self.palette["neutral"]),
-            ("Live", str(self.usable_quota_count), self.icons["metric_live"], self.palette["success"]),
-            ("Critical", str(self.low_quota_count), self.icons["metric_critical"], self.palette["warning"]),
-        ]
-        for column in range(3):
-            self.metrics_frame.grid_columnconfigure(column, weight=1, uniform="metrics")
+            metrics = [
+                ("accounts", "Accounts", self.icons["metric_accounts"], self.palette["neutral"]),
+                ("live", "Live", self.icons["metric_live"], self.palette["success"]),
+                ("critical", "Critical", self.icons["metric_critical"], self.palette["warning"]),
+            ]
+            for index, (key, label, icon, tone) in enumerate(metrics):
+                tile, value_label = self._build_metric_tile(self.metrics_frame, label, "0", icon, tone)
+                tile.grid(row=0, column=index, sticky="nsew", padx=(0, 6 if index < len(metrics) - 1 else 0))
+                self._metric_value_labels[key] = value_label
 
-        for index, (label, value, icon, tone) in enumerate(metrics):
-            tile = self._build_metric_tile(self.metrics_frame, label, value, icon, tone)
-            tile.grid(row=0, column=index, sticky="nsew", padx=(0, 6 if index < len(metrics) - 1 else 0))
+        self._metric_value_labels["accounts"].configure(text=str(presentation.account_count))
+        self._metric_value_labels["live"].configure(text=str(presentation.usable_quota_count))
+        self._metric_value_labels["critical"].configure(text=str(presentation.low_quota_count))
 
     def _build_metric_tile(
         self,
@@ -1120,7 +1182,7 @@ class CodexControlWindowsApp:
         value: str,
         icon: str,
         tone: str,
-    ) -> tk.Frame:
+    ) -> tuple[tk.Frame, tk.Label]:
         tile = tk.Frame(
             parent,
             bg=self.palette["panel"],
@@ -1160,42 +1222,88 @@ class CodexControlWindowsApp:
             font=self.fonts["caption"],
         ).pack(side="left", padx=(8, 0))
 
-        tk.Label(
+        value_label = tk.Label(
             tile,
             text=value,
             bg=self.palette["panel"],
             fg=self.palette["text"],
             font=self.fonts["metric"],
-        ).pack(anchor="w", pady=(8, 0))
-        return tile
+        )
+        value_label.pack(anchor="w", pady=(8, 0))
+        return tile, value_label
 
-    def _render_cards(self) -> None:
+    def _render_cards(self, presentation: PresentationState) -> None:
+        self._cancel_cards_render_job()
+        self._cards_render_token += 1
+        render_token = self._cards_render_token
         for child in self.cards_frame.winfo_children():
             child.destroy()
 
-        accounts = self.filtered_accounts
+        accounts = presentation.filtered_accounts
         if not accounts:
-            self._render_empty_state()
+            self._render_empty_state(presentation.search_query)
             return
 
+        row_specs = self._build_card_row_specs(accounts)
+        self._render_card_rows_chunk(row_specs, start=0, token=render_token)
+
+    def _build_card_row_specs(self, accounts: list[StoredAccount]) -> list[tuple[list[StoredAccount], bool]]:
         columns = self._cards_column_count()
         pending: list[StoredAccount] = []
+        rows: list[tuple[list[StoredAccount], bool]] = []
 
         for account in accounts:
             if columns > 1 and self.selected_account_id == account.id:
                 if pending:
-                    self._render_card_row(pending, span_all=False)
+                    rows.append((pending, False))
                     pending = []
-                self._render_card_row([account], span_all=True)
+                rows.append(([account], True))
                 continue
 
             pending.append(account)
             if len(pending) == columns:
-                self._render_card_row(pending, span_all=False)
+                rows.append((pending, False))
                 pending = []
 
         if pending:
-            self._render_card_row(pending, span_all=False)
+            rows.append((pending, False))
+        return rows
+
+    def _render_card_rows_chunk(
+        self,
+        row_specs: list[tuple[list[StoredAccount], bool]],
+        start: int,
+        token: int,
+    ) -> None:
+        if token != self._cards_render_token:
+            return
+
+        end = min(start + self.CARD_RENDER_BATCH_ROWS, len(row_specs))
+        for accounts, span_all in row_specs[start:end]:
+            self._render_card_row(accounts, span_all)
+
+        if end >= len(row_specs):
+            self._cards_render_job = None
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            return
+
+        self._cards_render_job = self.root.after(
+            1,
+            lambda next_start=end, next_token=token: self._render_card_rows_chunk(
+                row_specs,
+                next_start,
+                next_token,
+            )
+        )
+
+    def _cancel_cards_render_job(self) -> None:
+        if self._cards_render_job is None:
+            return
+        try:
+            self.root.after_cancel(self._cards_render_job)
+        except tk.TclError:
+            pass
+        self._cards_render_job = None
 
     def _render_card_row(self, accounts: list[StoredAccount], span_all: bool) -> None:
         row = tk.Frame(self.cards_frame, bg=self.palette["shell"])
@@ -1223,7 +1331,7 @@ class CodexControlWindowsApp:
             if index < row_count - 1:
                 tk.Frame(row, bg=self.palette["shell"], width=row_gap).pack(side="left")
 
-    def _render_empty_state(self) -> None:
+    def _render_empty_state(self, search_query: str) -> None:
         panel = tk.Frame(
             self.cards_frame,
             bg=self.palette["panel"],
@@ -1234,7 +1342,7 @@ class CodexControlWindowsApp:
         )
         panel.pack(fill="x")
 
-        title = "No Accounts" if not self.search_var.get().strip() else "No Matches"
+        title = "No Accounts" if not search_query else "No Matches"
         message = (
             "Add a Codex account to start tracking quota."
             if not self.accounts
@@ -1657,12 +1765,12 @@ class CodexControlWindowsApp:
         self.selected_account_id = None if self.selected_account_id == account_id else account_id
         self._render()
 
-    def _header_status_text(self) -> str:
+    def _header_status_text(self, presentation: PresentationState) -> str:
         if self.status_message:
             return self.status_message
-        if self.low_quota_count > 0:
-            return f"{self.account_count} accounts, {self.low_quota_count} critical"
-        return f"{self.account_count} accounts"
+        if presentation.low_quota_count > 0:
+            return f"{presentation.account_count} accounts, {presentation.low_quota_count} critical"
+        return f"{presentation.account_count} accounts"
 
     def _status_text(self, state: AccountRuntimeState) -> str:
         if state.is_loading:
@@ -1786,13 +1894,13 @@ class CodexControlWindowsApp:
         label.pack()
         return chip
 
-    def _update_tray(self) -> None:
+    def _update_tray(self, presentation: PresentationState) -> None:
         if self.tray_icon is None:
             return
 
-        state = self.menu_bar_quota_state
+        state = presentation.menu_bar_quota_state
         self.tray_icon.icon = self._create_icon_image(state, 64)
-        self.tray_icon.title = self._header_status_text()
+        self.tray_icon.title = self._header_status_text(presentation)
         try:
             self.tray_icon.update_menu()
         except Exception:
@@ -1864,15 +1972,42 @@ class CodexControlWindowsApp:
         font_spec: tuple[str, int] | tuple[str, int, str],
         max_width: int,
     ) -> str:
-        font = tkfont.Font(font=font_spec)
-        if font.measure(text) <= max_width:
+        if max_width <= 0:
             return text
 
-        ellipsis = "..."
-        truncated = text
-        while truncated and font.measure(truncated + ellipsis) > max_width:
-            truncated = truncated[:-1]
-        return (truncated or text[:1]) + ellipsis
+        font_key = tuple(font_spec)
+        cache_key = (text, font_key, max_width)
+        cached = self._ellipsize_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        font = self._font_object(font_spec)
+        if font.measure(text) <= max_width:
+            result = text
+        else:
+            ellipsis = "..."
+            truncated = text
+            while truncated and font.measure(truncated + ellipsis) > max_width:
+                truncated = truncated[:-1]
+            result = (truncated or text[:1]) + ellipsis
+
+        if len(self._ellipsize_cache) >= self.ELLIPSIS_CACHE_MAX:
+            self._ellipsize_cache.clear()
+        self._ellipsize_cache[cache_key] = result
+        return result
+
+    def _font_object(
+        self,
+        font_spec: tuple[str, int] | tuple[str, int, str],
+    ) -> tkfont.Font:
+        key = tuple(font_spec)
+        cached = self._font_object_cache.get(key)
+        if cached is not None:
+            return cached
+
+        font = tkfont.Font(font=font_spec)
+        self._font_object_cache[key] = font
+        return font
 
     def _on_root_configure(self, event: tk.Event[Any]) -> None:
         if event.widget is not self.root:
@@ -1882,6 +2017,7 @@ class CodexControlWindowsApp:
             return
 
         self._last_render_width = event.width
+        self._ellipsize_cache.clear()
         if self._resize_job is not None:
             self.root.after_cancel(self._resize_job)
         self._resize_job = self.root.after(90, self._render_after_resize)
@@ -1921,6 +2057,86 @@ class CodexControlWindowsApp:
 
     def _bind_click(self, widget: tk.Widget, callback: Callable[[tk.Event[Any]], None]) -> None:
         widget.bind("<Button-1>", callback)
+
+    def _on_search_change(self) -> None:
+        self._mark_search_dirty()
+        if self._search_render_job is not None:
+            try:
+                self.root.after_cancel(self._search_render_job)
+            except tk.TclError:
+                pass
+        self._search_render_job = self.root.after(self.SEARCH_RENDER_MS, self._flush_search_render)
+
+    def _flush_search_render(self) -> None:
+        self._search_render_job = None
+        self._render()
+
+    def _invalidate_presentation_cache(self) -> None:
+        self._presentation_cache_key = None
+        self._presentation_cache = None
+
+    def _mark_accounts_dirty(self) -> None:
+        self._accounts_revision += 1
+        self._invalidate_presentation_cache()
+
+    def _mark_runtime_dirty(self) -> None:
+        self._runtime_revision += 1
+        self._invalidate_presentation_cache()
+
+    def _mark_search_dirty(self) -> None:
+        self._search_revision += 1
+        self._invalidate_presentation_cache()
+
+    def _build_presentation_state(self) -> PresentationState:
+        cache_key = (self._accounts_revision, self._runtime_revision, self._search_revision)
+        if self._presentation_cache_key == cache_key and self._presentation_cache is not None:
+            return self._presentation_cache
+
+        query = self.search_var.get().strip().casefold()
+        filtered: list[tuple[tuple[int, int, float, float, str], StoredAccount]] = []
+        low_quota_count = 0
+        usable_quota_count = 0
+        exhausted_count = 0
+
+        for account in self.accounts:
+            snapshot = self.runtime_states.get(account.id, AccountRuntimeState()).snapshot
+            if snapshot is not None:
+                if snapshot.lowest_remaining_percent <= 20:
+                    low_quota_count += 1
+                if snapshot.has_usable_quota_now:
+                    usable_quota_count += 1
+                else:
+                    exhausted_count += 1
+
+            if query and not self._matches_search_query(account, query):
+                continue
+
+            filtered.append((account_sort_key(account, snapshot), account))
+
+        filtered.sort(key=lambda item: item[0])
+        presentation = PresentationState(
+            search_query=query,
+            filtered_accounts=[account for _, account in filtered],
+            account_count=len(self.accounts),
+            low_quota_count=low_quota_count,
+            usable_quota_count=usable_quota_count,
+            exhausted_count=exhausted_count,
+        )
+        self._presentation_cache_key = cache_key
+        self._presentation_cache = presentation
+        return presentation
+
+    def _matches_search_query(self, account: StoredAccount, query: str) -> bool:
+        return any(
+            query in candidate.casefold()
+            for candidate in (
+                account.display_name,
+                account.email_hint or "",
+                account.auth_subject or "",
+                account.provider_account_id or "",
+                account.codex_home_path,
+            )
+        )
 
 
 def main(argv: list[str] | None = None) -> None:

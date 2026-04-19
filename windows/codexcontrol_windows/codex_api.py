@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -16,6 +17,8 @@ REFRESH_ENDPOINT = "https://auth.openai.com/oauth/token"
 USAGE_DEFAULT_BASE = "https://chatgpt.com/backend-api"
 REFRESH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 REQUEST_TIMEOUT_SECONDS = 30
+_SESSION_STATE = threading.local()
+_USAGE_URL_CACHE: dict[str, tuple[float | None, str]] = {}
 
 
 class CodexApiError(RuntimeError):
@@ -47,6 +50,10 @@ class AuthCredentials:
 
 def load_identity(codex_home_path: str) -> AuthBackedIdentity:
     credentials = _load_credentials(codex_home_path)
+    return _identity_from_credentials(credentials)
+
+
+def _identity_from_credentials(credentials: AuthCredentials) -> AuthBackedIdentity:
     payload = _parse_jwt(credentials.id_token) if credentials.id_token else None
     auth = payload.get("https://api.openai.com/auth") if isinstance(payload, dict) else None
     profile = payload.get("https://api.openai.com/profile") if isinstance(payload, dict) else None
@@ -71,7 +78,10 @@ def load_identity(codex_home_path: str) -> AuthBackedIdentity:
     )
 
 
-def fetch_snapshot(account: StoredAccount) -> AccountUsageSnapshot:
+def fetch_snapshot(
+    account: StoredAccount,
+    verify_live_data: bool = True,
+) -> AccountUsageSnapshot:
     credentials = _load_credentials(account.codex_home_path)
 
     if credentials.needs_refresh and credentials.refresh_token:
@@ -79,7 +89,13 @@ def fetch_snapshot(account: StoredAccount) -> AccountUsageSnapshot:
         _save_credentials(credentials, account.codex_home_path)
 
     try:
-        return _fetch_verified_snapshot(
+        if verify_live_data:
+            return _fetch_verified_snapshot(
+                codex_home_path=account.codex_home_path,
+                credentials=credentials,
+                fallback_email=account.email_hint,
+            )
+        return _fetch_snapshot(
             codex_home_path=account.codex_home_path,
             credentials=credentials,
             fallback_email=account.email_hint,
@@ -90,7 +106,13 @@ def fetch_snapshot(account: StoredAccount) -> AccountUsageSnapshot:
 
     credentials = _refresh(credentials)
     _save_credentials(credentials, account.codex_home_path)
-    return _fetch_verified_snapshot(
+    if verify_live_data:
+        return _fetch_verified_snapshot(
+            codex_home_path=account.codex_home_path,
+            credentials=credentials,
+            fallback_email=account.email_hint,
+        )
+    return _fetch_snapshot(
         codex_home_path=account.codex_home_path,
         credentials=credentials,
         fallback_email=account.email_hint,
@@ -120,11 +142,7 @@ def _fetch_snapshot(
     credentials: AuthCredentials,
     fallback_email: str | None,
 ) -> AccountUsageSnapshot:
-    identity: AuthBackedIdentity | None
-    try:
-        identity = load_identity(codex_home_path)
-    except CodexApiError:
-        identity = None
+    identity = _identity_from_credentials(credentials)
 
     response = _fetch_usage(
         access_token=credentials.access_token,
@@ -221,7 +239,7 @@ def _refresh(credentials: AuthCredentials) -> AuthCredentials:
     }
 
     try:
-        response = requests.post(
+        response = _session().post(
             REFRESH_ENDPOINT,
             json=body,
             headers=headers,
@@ -271,7 +289,7 @@ def _fetch_usage(access_token: str, account_id: str | None, codex_home_path: str
         headers["ChatGPT-Account-Id"] = account_id
 
     try:
-        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+        response = _session().get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
     except requests.RequestException as error:
         raise CodexApiError(f"Network error: {error}") from error
 
@@ -295,6 +313,16 @@ def _fetch_usage(access_token: str, account_id: str | None, codex_home_path: str
 
 def _resolve_usage_url(codex_home_path: str) -> str:
     config_path = Path(codex_home_path) / "config.toml"
+    cache_key = str(config_path)
+    try:
+        modified_at = config_path.stat().st_mtime if config_path.exists() else None
+    except OSError:
+        modified_at = None
+
+    cached = _USAGE_URL_CACHE.get(cache_key)
+    if cached is not None and cached[0] == modified_at:
+        return cached[1]
+
     configured_base: str | None = None
     if config_path.exists():
         configured_base = _parse_chatgpt_base_url(config_path.read_text(encoding="utf-8"))
@@ -309,7 +337,17 @@ def _resolve_usage_url(codex_home_path: str) -> str:
         base += "/backend-api"
 
     path = "/wham/usage" if "/backend-api" in base else "/api/codex/usage"
-    return f"{base}{path}"
+    resolved = f"{base}{path}"
+    _USAGE_URL_CACHE[cache_key] = (modified_at, resolved)
+    return resolved
+
+
+def _session() -> requests.Session:
+    session = getattr(_SESSION_STATE, "session", None)
+    if session is None:
+        session = requests.Session()
+        _SESSION_STATE.session = session
+    return session
 
 
 def _parse_chatgpt_base_url(contents: str) -> str | None:
