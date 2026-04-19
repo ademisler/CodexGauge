@@ -3,8 +3,8 @@
   "short_name": "CodexControl",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#08101f",
-  "theme_color": "#111a37",
+  "background_color": "#0b1015",
+  "theme_color": "#0b1015",
   "icons": [
     {
       "src": "/favicon.svg",

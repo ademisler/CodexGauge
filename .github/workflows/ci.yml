@@ -10,6 +10,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
+      - name: Bootstrap Sparkle framework
+        run: ./Scripts/bootstrap_sparkle.sh
       - name: Build macOS app target
         run: swift build
 
@@ -35,6 +37,9 @@ jobs:
         run: |
           test -f site/index.html
           test -f site/styles.css
+          test -f site/appcast.xml
+          test -f site/og-card.html
+          test -f site/releases/v1.1.0.md
           test -f site/sitemap.xml
           test -f site/robots.txt
           test -f site/assets/codexcontrol-demo-ui.png

@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
@@ -27,6 +27,16 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://codexcontrol.app/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>iC2c8vm0AoWRqvHXAgzlupXKFYNdvrHdH4M5Q1UtzEw=</string>
+	<key>SUVerifyUpdateBeforeExtraction</key>
 	<true/>
 </dict>
 </plist>

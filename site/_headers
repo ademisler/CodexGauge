@@ -8,3 +8,9 @@
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+/appcast.xml
+  Cache-Control: public, max-age=300, must-revalidate
+
+/releases/*
+  Cache-Control: public, max-age=3600

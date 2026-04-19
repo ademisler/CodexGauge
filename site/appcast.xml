@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>CodexControl Updates</title>
+    <link>https://codexcontrol.app/</link>
+    <description>Release feed for CodexControl macOS updates.</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.1.0</title>
+      <link>https://codexcontrol.app/</link>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://codexcontrol.app/releases/v1.1.0.md</sparkle:releaseNotesLink>
+      <pubDate>Sun, 19 Apr 2026 09:44:46 +0000</pubDate>
+      <enclosure url="https://github.com/ademisler/CodexControl/releases/download/v1.1.0/CodexControl-macos.zip"
+                 sparkle:edSignature="y0Ubmsyzr2+MAA5/I1WRxlb400m79+IoxpxcR2HbAxjX/iQ8aOwVItWRi0Dt1z0kMxNim7Vvnyoe50OjJmc/DQ==" length="2124244"
+                 type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

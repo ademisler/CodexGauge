@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @ObservedObject var model: AppModel
+    @ObservedObject var appUpdater: AppUpdater
 
     var body: some View {
         ZStack {
@@ -48,6 +49,12 @@ struct RootView: View {
                     action: { Task { await self.model.refreshAll() } })
                     .help("Refresh all accounts")
                     .disabled(self.model.isRefreshingAll)
+
+                HeaderIconButton(
+                    systemName: "arrow.down.circle",
+                    action: { self.appUpdater.checkForUpdates() })
+                    .help("Check for updates")
+                    .disabled(!self.appUpdater.canCheckForUpdates)
             }
         }
         .padding(.horizontal, 2)

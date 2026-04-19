@@ -9,20 +9,86 @@ permissions:
   contents: write
 
 jobs:
-  macos-release:
-    runs-on: macos-15
+  prepare-release:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Build release artifacts
-        run: ./Scripts/build_release_artifacts.sh
-      - name: Publish GitHub release
+      - name: Ensure release exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           TITLE="CodexControl ${TAG#v}"
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TITLE" --generate-notes
+
+  macos-release:
+    needs: prepare-release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Bootstrap Sparkle framework
+        run: ./Scripts/bootstrap_sparkle.sh
+      - name: Import Developer ID certificate
+        if: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 != '' && secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD != '' }}
+        env:
+          CERT_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/codexcontrol-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/codexcontrol-dev-id.p12"
+          echo "$CERT_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+      - name: Store notary credentials
+        if: ${{ secrets.APPLE_NOTARY_APPLE_ID != '' && secrets.APPLE_NOTARY_TEAM_ID != '' && secrets.APPLE_NOTARY_APP_PASSWORD != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_NOTARY_APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_NOTARY_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_NOTARY_APP_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials "codexcontrol-notary" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD"
+      - name: Build release artifacts
+        env:
+          CODE_SIGN_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_IDENTITY }}
+        run: |
+          if [[ -n "${{ secrets.APPLE_NOTARY_APPLE_ID }}" && -n "${{ secrets.APPLE_NOTARY_TEAM_ID }}" && -n "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" ]]; then
+            export NOTARY_KEYCHAIN_PROFILE="codexcontrol-notary"
+          fi
+          ./Scripts/build_release_artifacts.sh
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
           gh release upload "$TAG" \
             ReleaseArtifacts/CodexControl-macos.zip \
             ReleaseArtifacts/CodexControl-macos.zip.sha256 \
+            --clobber
+
+  windows-release:
+    needs: prepare-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Windows release package
+        shell: pwsh
+        run: .\windows\package_release.ps1 -Clean
+      - name: Publish Windows assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release upload "$TAG" \
+            ReleaseArtifacts/CodexControl-windows.zip \
+            ReleaseArtifacts/CodexControl-windows.zip.sha256 \
             --clobber

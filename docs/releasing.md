@@ -13,6 +13,7 @@ This repository supports both manual local releases and tag-driven GitHub releas
 Before cutting a release:
 
 ```bash
+./Scripts/bootstrap_sparkle.sh
 swift build
 ./Scripts/package_app.sh
 PYTHONPATH=windows python3 -m unittest discover -s windows/tests -v
@@ -37,16 +38,69 @@ This writes:
 - `ReleaseArtifacts/CodexControl-macos.zip`
 - `ReleaseArtifacts/CodexControl-macos.zip.sha256`
 
+If `CODE_SIGN_IDENTITY` and `NOTARY_KEYCHAIN_PROFILE` are both present in the environment, the same command also notarizes and staples the `.app` before zipping it.
+
+Build the Windows release package locally:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\windows\package_release.ps1 -Clean
+```
+
+This writes:
+
+- `ReleaseArtifacts/CodexControl-windows.zip`
+- `ReleaseArtifacts/CodexControl-windows.zip.sha256`
+
 ## GitHub Release Workflow
 
-Pushing a tag such as `v1.0.0` triggers `.github/workflows/release.yml`.
+Pushing a tag such as `v1.1.0` triggers `.github/workflows/release.yml`.
 
 That workflow:
 
+- ensures the GitHub Release exists for the tag
 - packages the macOS app
+- optionally signs and notarizes the macOS app if Apple secrets are configured
 - zips the `.app`
+- builds a zipped Windows package
 - creates or updates the matching GitHub Release
-- uploads the zip and SHA-256 checksum
+- uploads both platform archives and SHA-256 checksums
+
+### Optional Apple Secrets
+
+If you want GitHub Actions to sign and notarize macOS builds, configure:
+
+- `APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64`
+- `APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD`
+- `APPLE_DEVELOPER_ID_APPLICATION_IDENTITY`
+- `APPLE_NOTARY_APPLE_ID`
+- `APPLE_NOTARY_TEAM_ID`
+- `APPLE_NOTARY_APP_PASSWORD`
+
+Without these secrets, release builds still complete, but the macOS archive is ad-hoc signed and not notarized.
+
+## Sparkle Feed
+
+After a macOS release archive exists, generate the appcast locally using the keychain-resident Sparkle key:
+
+```bash
+./Scripts/generate_appcast.sh
+```
+
+If direct keychain access is inconvenient in automation, export the private Sparkle key once to a local ignored path and pass it explicitly:
+
+```bash
+SPARKLE_PRIVATE_KEY_FILE=.tmp/sparkle-private.key ./Scripts/generate_appcast.sh
+```
+
+By default this writes:
+
+- `site/appcast.xml`
+
+and expects the release asset URL:
+
+- `https://github.com/ademisler/CodexControl/releases/download/vX.Y.Z/CodexControl-macos.zip`
+
+Release notes for Sparkle should live under `site/releases/`.
 
 ## Homebrew Tap Update
 

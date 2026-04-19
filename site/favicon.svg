@@ -2,16 +2,16 @@
   <title id="title">CodexControl</title>
   <desc id="desc">CodexControl orbit dial favicon.</desc>
   <defs>
-    <linearGradient id="panel" x1="11" y1="8" x2="53" y2="58" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#afc4ff"/>
-      <stop offset="0.48" stop-color="#86a6ff"/>
-      <stop offset="1" stop-color="#5c7cff"/>
+    <linearGradient id="panel" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#171d24"/>
+      <stop offset="1" stop-color="#0b1015"/>
     </linearGradient>
   </defs>
   <rect x="7" y="7" width="50" height="50" rx="16" fill="url(#panel)"/>
-  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#0a1325" stroke-width="6.4" stroke-linecap="round"/>
-  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#7fe1a2" stroke-width="6.4" stroke-linecap="round" stroke-dasharray="33 96" transform="rotate(-58 32 32)"/>
-  <circle cx="32" cy="32" r="6.1" fill="#0a1325"/>
-  <circle cx="32" cy="32" r="2.35" fill="#7fe1a2"/>
-  <circle cx="44.9" cy="23.4" r="3.15" fill="#0a1325"/>
+  <rect x="7" y="7" width="50" height="50" rx="16" fill="none" stroke="#29323c" stroke-width="1.25"/>
+  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#121820" stroke-width="6.4"/>
+  <circle cx="32" cy="32" r="15.5" fill="none" stroke="#3ad06d" stroke-width="6.4" stroke-linecap="round" stroke-dasharray="98 5" transform="rotate(-70 32 32)"/>
+  <circle cx="32" cy="32" r="6.1" fill="#121820"/>
+  <circle cx="32" cy="32" r="2.65" fill="#ff4a4a"/>
+  <circle cx="44.9" cy="23.4" r="3.15" fill="#3ad06d"/>
 </svg>

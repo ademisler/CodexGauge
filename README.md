@@ -46,7 +46,7 @@ brew install --cask ademisler/tap/codexcontrol
 
 ### Direct Download
 
-- macOS release: [CodexControl 1.0.0](https://github.com/ademisler/CodexControl/releases/tag/v1.0.0)
+- macOS and Windows release: [CodexControl 1.1.0](https://github.com/ademisler/CodexControl/releases/tag/v1.1.0)
 - Homebrew tap: [ademisler/homebrew-tap](https://github.com/ademisler/homebrew-tap)
 
 ## Why CodexControl
@@ -76,6 +76,7 @@ CodexControl is intentionally narrower:
 | Reauthentication | Refreshes a saved account without rebuilding the account list |
 | Local account management | Add, remove, relabel, refresh, and open account folders from the app |
 | Periodic refresh | Rechecks all accounts every 5 minutes |
+| Sparkle updates | Checks for signed macOS updates from the in-app updater feed |
 
 ## How It Works
 
@@ -122,6 +123,8 @@ Migration from previous local app directories is automatic.
 - Built with SwiftUI + AppKit
 - Ships as a menu bar app
 - Supports Codex Desktop restart after account switching
+- Uses Sparkle for signed app update delivery
+- Includes release scripts for signing and notarization when Apple credentials are available
 
 ### Windows
 
@@ -136,6 +139,7 @@ The project website lives at [codexcontrol.app](https://codexcontrol.app).
 - Static landing page source: [`site`](./site)
 - Cloudflare Pages config: [`wrangler.jsonc`](./wrangler.jsonc)
 - Deploy command: `./Scripts/deploy_site.sh`
+- Sparkle appcast: [`site/appcast.xml`](./site/appcast.xml)
 - Homebrew cask: `ademisler/tap/codexcontrol`
 
 ## Build From Source
@@ -143,6 +147,7 @@ The project website lives at [codexcontrol.app](https://codexcontrol.app).
 ### macOS
 
 ```bash
+./Scripts/bootstrap_sparkle.sh
 swift build
 ./Scripts/package_app.sh
 open ./Build/CodexControl.app
@@ -173,6 +178,7 @@ powershell -ExecutionPolicy Bypass -File .\windows\install.ps1 -EnableStartup -L
 Sources/CodexControl/         macOS app
 Scripts/                      macOS packaging helpers
 Support/                      app metadata
+site/releases/                Sparkle release notes hosted on codexcontrol.app
 site/                         marketing website for codexcontrol.app
 wrangler.jsonc                Cloudflare Pages config
 CHANGELOG.md                  release history

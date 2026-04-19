@@ -1810,8 +1810,11 @@ class CodexControlWindowsApp:
         return build_orbit_dial_icon(
             size,
             accent=accent,
-            panel_fill=self.palette["accent"],
+            core="#ff4a4a",
+            panel_fill=self.palette["panel"],
+            panel_fill_end=self.palette["bg"],
             dark=self.palette["dark_icon"],
+            border=self.palette["hairline"],
         )
 
     def _short_path(self, path: str) -> str:

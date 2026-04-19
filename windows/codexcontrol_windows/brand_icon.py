@@ -9,16 +9,19 @@ def build_orbit_dial_icon(
     size: int,
     *,
     accent: str,
-    panel_fill: str = "#7f9eff",
-    dark: str = "#0a1325",
-    glow: str = "#dbe6ff",
+    core: str = "#ff4a4a",
+    panel_fill: str = "#171d24",
+    panel_fill_end: str = "#0b1015",
+    dark: str = "#121820",
+    border: str = "#29323c",
+    glow: str = "#0d1611",
 ) -> Image.Image:
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
 
     gradient = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     gradient_draw = ImageDraw.Draw(gradient)
-    top_rgb = (175, 196, 255)
-    bottom_rgb = (92, 124, 255)
+    top_rgb = _hex_to_rgb(panel_fill)
+    bottom_rgb = _hex_to_rgb(panel_fill_end)
     for y in range(size):
         mix = y / max(1, size - 1)
         rgb = tuple(int(top_rgb[idx] + (bottom_rgb[idx] - top_rgb[idx]) * mix) for idx in range(3))
@@ -46,7 +49,7 @@ def build_orbit_dial_icon(
             center + glow_radius,
             center + glow_radius,
         ),
-        fill=_hex_to_rgba(glow, 76),
+        fill=_hex_to_rgba(glow, 92),
     )
     glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=max(2, size * 0.05)))
     image.alpha_composite(glow_layer)
@@ -77,7 +80,7 @@ def build_orbit_dial_icon(
             center + center_dot_radius,
             center + center_dot_radius,
         ),
-        fill=accent,
+        fill=core,
     )
 
     orbit_radius = size * 0.24
@@ -101,7 +104,7 @@ def build_orbit_dial_icon(
         border_draw.rounded_rectangle(
             (outer_padding, outer_padding, size - outer_padding, size - outer_padding),
             radius=corner_radius,
-            outline=_hex_to_rgba(panel_fill, 64),
+            outline=_hex_to_rgba(border, 180),
             width=max(1, int(size * 0.03)),
         )
         image.alpha_composite(border)
@@ -115,3 +118,8 @@ def _hex_to_rgba(value: str, alpha: int) -> tuple[int, int, int, int]:
     green = int(value[2:4], 16)
     blue = int(value[4:6], 16)
     return red, green, blue, alpha
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    value = value.lstrip("#")
+    return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)

@@ -9,7 +9,7 @@ from PIL import Image
 from codexcontrol_windows.brand_icon import build_orbit_dial_icon
 
 def build_icon(size: int) -> Image.Image:
-    return build_orbit_dial_icon(size, accent="#7fe1a2")
+    return build_orbit_dial_icon(size, accent="#3ad06d")
 
 
 def main() -> None:
