@@ -89,15 +89,11 @@ img {
   letter-spacing: -0.02em;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
+.brand-mark-image {
+  display: block;
   width: 34px;
   height: 34px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(122, 162, 255, 0.9), rgba(87, 126, 255, 0.92));
-  color: #07101f;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  flex: 0 0 auto;
 }
 
 .brand-name {
@@ -457,7 +453,7 @@ img {
 }
 
 .footer-mark {
-  display: inline-grid;
+  display: inline-block;
   vertical-align: middle;
   margin-right: 10px;
 }

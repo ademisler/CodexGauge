@@ -1,6 +1,10 @@
 # CodexControl
 
 <p align="center">
+  <img src="./site/assets/codexcontrol-mark.svg" alt="CodexControl logo" width="72">
+</p>
+
+<p align="center">
   <img src="./docs/images/codexcontrol-demo-ui.png" alt="CodexControl demo UI" width="430">
 </p>
 
@@ -12,6 +16,8 @@
   <a href="https://codexcontrol.app">Website</a>
   ·
   <a href="https://github.com/ademisler/CodexControl">GitHub</a>
+  ·
+  <a href="https://github.com/ademisler/CodexControl/releases">Releases</a>
   ·
   <a href="https://github.com/ademisler/CodexControl/blob/main/SECURITY.md">Security</a>
 </p>
@@ -116,7 +122,7 @@ The project website lives at [codexcontrol.app](https://codexcontrol.app).
 
 - Static landing page source: [`site`](./site)
 - Cloudflare Pages config: [`wrangler.jsonc`](./wrangler.jsonc)
-- Deploy command: `npx wrangler pages deploy site --project-name codexcontrol`
+- Deploy command: `./Scripts/deploy_site.sh`
 
 ## Build From Source
 
@@ -155,6 +161,8 @@ Scripts/                      macOS packaging helpers
 Support/                      app metadata
 site/                         marketing website for codexcontrol.app
 wrangler.jsonc                Cloudflare Pages config
+CHANGELOG.md                  release history
+docs/releasing.md             release process
 windows/                      Windows implementation and scripts
 docs/images/                  repository screenshots
 ```

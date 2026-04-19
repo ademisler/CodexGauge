@@ -1,6 +1,7 @@
 .DS_Store
 /.build
 /Build
+/ReleaseArtifacts
 /Packages
 xcuserdata/
 DerivedData/
@@ -9,5 +10,7 @@ DerivedData/
 .netrc
 *.pyc
 __pycache__/
+.tmp/
 windows/dist/
 windows/.DS_Store
+site/assets/codexcontrol-site-preview.png

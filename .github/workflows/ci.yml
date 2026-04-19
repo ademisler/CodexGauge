@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  macos-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build macOS app target
+        run: swift build
+
+  windows-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Windows app dependencies
+        run: python -m pip install -r windows\requirements.txt
+      - name: Run Windows unit tests
+        run: python -m unittest discover -s windows/tests -v
+        env:
+          PYTHONPATH: windows
+
+  site-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate site file structure
+        run: |
+          test -f site/index.html
+          test -f site/styles.css
+          test -f site/sitemap.xml
+          test -f site/robots.txt
+          test -f site/assets/codexcontrol-demo-ui.png
+          test -f site/assets/codexcontrol-og.png
+          test -f site/assets/codexcontrol-mark.svg
+      - name: Validate SEO markers
+        run: |
+          grep -q 'https://codexcontrol.app/' site/index.html
+          grep -q 'application/ld+json' site/index.html
+          grep -q 'codexcontrol-og.png' site/index.html

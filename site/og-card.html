@@ -34,15 +34,10 @@
         padding: 48px 54px;
       }
       .mark {
-        display: inline-grid;
-        place-items: center;
+        display: block;
         width: 48px;
         height: 48px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, var(--blue), var(--blue-strong));
-        color: #07101f;
-        font-weight: 800;
-        font-size: 1.3rem;
+        flex: 0 0 auto;
       }
       .brand {
         display: flex;
@@ -146,7 +141,7 @@
   <body>
     <div class="frame">
       <div class="brand">
-        <span class="mark">C</span>
+        <img class="mark" src="/assets/codexcontrol-mark.svg" alt="">
         <span>CodexControl</span>
       </div>
       <div class="hero">
